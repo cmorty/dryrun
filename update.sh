@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
-
-HERE=$PWD
 COOJAPATH=/proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja
 
-echo $HERE
+
+HERE=$PWD/cooja
+
+mkdir -p $HERE
+
 
 cd $COOJAPATH 
 ant jar
