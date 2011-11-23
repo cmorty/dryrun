@@ -1,27 +1,80 @@
 #!/bin/bash
 set -e
-COOJAPATH=/proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja
+
+BUILD=/build/morty/cooja_build
+DST=/build/morty/cooja
 
 
-HERE=$PWD/cooja
-
-#rm -rf $HERE
-mkdir -p $HERE
+mkdir -p $BUILD
 
 
-cd $COOJAPATH 
+
+#rm -rf $DST
+mkdir -p $DST
+
+# >>>>>>>>>>>>> Contiki
+
+BP=$BUILD/contiki
+if [ ! -d  $BP ] ; do
+	git clone git://i4git.informatik.uni-erlangen.de/contiki.git $BP
+done
+
+cd  $BP
+git fetch origin
+git checkout origin/master
+
+WP=$PB/tools/cooja
+
+cd $WP
 ant jar
-cp -r $COOJAPATH/dist $HERE
+WP -r dist $DST
 
-mkdir -p $HERE/apps
+# >>> Plugins
 
-for F in  $COOJAPATH/apps/*
+
+mkdir -p $DST/apps
+
+for F in  $WP/apps/*
 do
 	set +e
-	#cd $F &&  ant  && rsync --delete -avm --include "*/" --include"*.config" --include "*.jar" --exclude "*"  $F $HERE/apps  
-	cd $F &&  ant  && rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"  $F $HERE/apps  
+	cd $F &&  ant  && rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"  $F $DST/apps  
 	set -e
 done
+
+# >>>>>>>>>>>>> RealSim
+
+BP=$BUILD/realsim
+if [ ! -d  $BP ] ; do
+	git clone git://i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
+done
+
+cd  $BP
+git fetch origin
+git checkout origin/realsim
+
+WP=$PB/cooja/apps/realsim
+
+cd $WP
+ant "-Dcooja=$DST"
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"  $WP $DST/apps  
+
+# >>>>>>>>>>>> DryRun
+
+BP=$BUILD/dryrun
+if [ ! -d  $BP ] ; do
+	git clone ssh://gitosis@i4git:rdsp_dryrun.git $BP
+done
+
+cd  $BP
+git fetch origin
+git checkout origin/sqlite
+
+WP=$PB
+
+cd $WP
+ant "-Dcooja=$DST"
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"  $WP $DST/apps  
+
 		
 
 
