@@ -1,4 +1,6 @@
 #!/bin/bash
+source config.sh
+
 
 if [ $# -lt 1 -o $# -gt 2 ]; then
   echo "Usage: $0 <test> [logfile]"
@@ -38,8 +40,7 @@ fi
 
 #EXE="java -mx512m -jar cooja/dist/cooja.jar -nogui=$TEST.csc -external_tools_config=\"config/external_tools_linux.config\""
 #EXE="cd /proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja && ant run_nogui -Dargs=$TEST.csc"
-cd /proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja/build 
-java -mx1024m -jar ../dist/cooja.jar -nogui=$TEST.csc 
+${COOJA} -nogui=$TEST.csc -external_tools_config=${COOJACONFIG}
 
 if [ -f "COOJA.log" ]; then
   mv COOJA.log $LOG.cooja_log
