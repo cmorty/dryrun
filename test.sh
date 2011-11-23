@@ -5,12 +5,23 @@ if [ $# -lt 1 -o $# -gt 2 ]; then
   exit
 fi
 
+
+HERE=`pwd`
 TEST=$1
 
 LOG=/dev/null
-if [ $# -eq 2 ]; then
-	LOG=$2
+if [ $# -gt 1 ]; then
+	LOG=$HERE/$2
 	echo ">>>>>>> Logging to: $LOG <<<<<<<<"
+fi
+
+
+if [ $# -gt 2 ]; then
+	if [ $3 -eq "skip"]; then
+		if [ -f $LOG ]; then
+			exit 0 
+		fi
+	fi
 fi
 
 echo ">>>>>>> Starting test: $TEST <<<<<<<<"
@@ -21,17 +32,30 @@ fi
 if [ -f "COOJA.testlog" ]; then
   rm COOJA.testlog
 fi
-java -mx512m -jar cooja/dist/cooja.jar -nogui=$TEST.csc -external_tools_config="config/external_tools_linux.config"
+if [ -f "*.trace" ]; then
+  rm *.trace
+fi
+
+#EXE="java -mx512m -jar cooja/dist/cooja.jar -nogui=$TEST.csc -external_tools_config=\"config/external_tools_linux.config\""
+#EXE="cd /proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja && ant run_nogui -Dargs=$TEST.csc"
+cd /proj/mmtmp41/morty/git/rdsp_simulation/tools/cooja/build 
+java -mx1024m -jar ../dist/cooja.jar -nogui=$TEST.csc 
+
 if [ -f "COOJA.log" ]; then
-  mv COOJA.log $TEST.cooja_log
+  mv COOJA.log $LOG.cooja_log
 fi
 if [ -f "COOJA.testlog" ]; then
-  mv COOJA.testlog $TEST.log
+  mv COOJA.testlog $LOG.log
 fi
+for F in *.trace 
+do
+	echo "Moving  ${F} to ${LOG}.${F}"	
+	mv ${F} ${LOG}.${F}
+done
 
 OK=0
 if [ -f "$TEST.log" ]; then
-  OK=`grep "TEST OK" $TEST.log | wc -l`
+  OK=`grep "TEST OK" $LOG.log | wc -l`
 fi
 
 if [ $OK == 0 ]; then
@@ -61,6 +85,8 @@ cat $TEST.cooja_log >> $LOG
 
 echo >> $LOG
 
+
+cd $HERE
 
 if [ $OK == 0 ]; then
 	echo ">>>>>>> Finished test: $TEST FAILED <<<<<<<<"
