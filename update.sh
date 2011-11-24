@@ -14,16 +14,18 @@ mkdir -p $DST
 
 # >>>>>>>>>>>>> Contiki
 
-BP=$BUILD/contiki
+BP=$BUILD_CONTIKI
 if [ ! -d  $BP ] ; then
 	git clone git://i4git.informatik.uni-erlangen.de/contiki.git $BP
 fi
 
-cd  $BP
-git fetch origin
-git checkout origin/master
+if [ $UPDATE_GIT = "true" ] ; then
+	cd  $BP
+	git fetch origin
+	git checkout origin/master
+fi
 
-WP=$BP/tools/cooja
+WP=$BUILD_COOJA
 
 cd $WP
 ant jar
@@ -45,14 +47,18 @@ done
 
 # >>>>>>>>>>>>> RealSim
 
-BP=$BUILD/realsim
+BP=$BUILD_REALSIM
 if [ ! -d  $BP ] ; then
 	git clone git://i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
+	cd $BP
+	git checkout origin/realsim -b realsim -t
 fi
 
-cd  $BP
-git fetch origin
-git checkout origin/realsim
+if [ $UPDATE_GIT = "true" ] ; then
+	cd  $BP
+	git fetch origin
+	git checkout origin/realsim
+fi
 
 WP=$BP/cooja/apps/realsim
 
@@ -62,18 +68,24 @@ rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --excl
 
 # >>>>>>>>>>>> DryRun
 
-BP=$BUILD/dryrun
+BP=$BUILD_TRACE
 if [ ! -d  $BP ] ; then
 	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/rdsp_dryrun.git $BP
+	cd $BP
+	git checkout origin/sqlite -b sqlite -t
 fi
 
-cd  $BP
-git fetch origin
-git checkout origin/sqlite
+if [ $UPDATE_GIT = "true" ] ; then
+	cd  $BP
+	git fetch origin
+	git checkout origin/sqlite
+fi
 
 WP=$BP
 
 cd $WP
+ant "-Dcooja=$DST"
+cd $WP/sqlite
 ant "-Dcooja=$DST"
 rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*" 	 $WP $DST/apps  
 

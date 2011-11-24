@@ -1,4 +1,28 @@
+# Basic Build path - where to checkout stuff to
 BUILD=/build/morty/cooja_build
+
+# Where to install everything
 DST=/build/morty/cooja
+
+# The config file to use
 COOJACONFIG=config/testenv.config
+
+# How to start Cooja
 COOJA="java -mx1024m -jar $DST/dist/cooja.jar"
+
+# If set to true, data is taken from origin
+UPDATE_GIT=false
+
+# Path to contiki 
+# This is only needed for git checkouts or updates
+BUILD_CONTIKI=$BUILD/contiki
+
+# Path to COOJA
+BUILD_COOJA=$BUILD_CONTIKI/tools/cooja
+
+# Path to realsim
+BUILD_REALSIM=$BUILD/realsim
+
+
+# Path to cooja trace
+BUILD_TRACE=$BUILD/trace
