@@ -11,6 +11,11 @@ mkdir -p $BUILD
 
 #rm -rf $DST
 mkdir -p $DST
+if [ `readlink -f ./cooja` != `readlink -f $DST` ] ; then 
+	rm -f ./cooja
+	ln -s $DST cooja
+fi
+
 
 # >>>>>>>>>>>>> Contiki
 
