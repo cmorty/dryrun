@@ -8,10 +8,10 @@ APPCP='rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"
 mkdir -p $BUILD
 
 #Get absolute paths
-BUILD_CONTIKI=`readlink -f $BUILD_CONTIKI `
-BUILD_COOJA=`readlink -f $BUILD_COOJA `
-BUILD_REALSIM=`readlink -f $BUILD_REALSIM `
-BUILD_TRACE=`readlink -f $BUILD_TRACE `
+if [ -d  $BUILD_CONTIKI ] ; then BUILD_CONTIKI=`readlink -f $BUILD_CONTIKI ` ;fi
+if [ -d  $BUILD_COOJA   ] ; then BUILD_COOJA=`  readlink -f $BUILD_COOJA `   ;fi
+if [ -d  $BUILD_REALSIM ] ; then BUILD_REALSIM=`readlink -f $BUILD_REALSIM ` ;fi
+if [ -d  $BUILD_TRACE   ] ; then BUILD_TRACE=`  readlink -f $BUILD_TRACE `   ;fi
 
 
 
