@@ -6,8 +6,8 @@
   <project EXPORT="discard">[APPS_DIR]/serial_socket</project>
   <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/realsim</project>
-  <project EXPORT="discard">[APPS_DIR]/dryrun</project>
-  <project EXPORT="discard">[APPS_DIR]/dryrun/sqlite</project>
+  <project EXPORT="discard">[APPS_DIR]/trace</project>
+  <project EXPORT="discard">[APPS_DIR]/trace/sqlite</project>
   <simulation>
     <title>My simulation</title>
     <delaytime>0</delaytime>
@@ -27,9 +27,9 @@
       se.sics.cooja.mspmote.SkyMoteType
       <identifier>sky1</identifier>
       <description>Sky Mote Type #sky1</description>
-      <source EXPORT="discard">/proj/mmtmp41/morty/dryrun/workdir/examples/rime/example-collect.c</source>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/rime/example-collect.c</source>
       <commands EXPORT="discard">make example-collect.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">/proj/mmtmp41/morty/dryrun/workdir/examples/rime/example-collect.sky</firmware>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/rime/example-collect.sky</firmware>
       <moteinterface>se.sics.cooja.interfaces.Position</moteinterface>
       <moteinterface>se.sics.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>se.sics.cooja.interfaces.IPAddress</moteinterface>
@@ -190,7 +190,7 @@
   <plugin>
     se.sics.cooja.plugins.SimControl
     <width>318</width>
-    <z>1</z>
+    <z>4</z>
     <height>192</height>
     <location_x>0</location_x>
     <location_y>0</location_y>
@@ -203,7 +203,7 @@
       <viewport>3.042726232958881 0.0 0.0 3.042726232958881 -18.069462100878987 -66.84981390545845</viewport>
     </plugin_config>
     <width>300</width>
-    <z>3</z>
+    <z>5</z>
     <height>300</height>
     <location_x>968</location_x>
     <location_y>0</location_y>
@@ -214,7 +214,7 @@
       <filter />
     </plugin_config>
     <width>1268</width>
-    <z>5</z>
+    <z>7</z>
     <height>150</height>
     <location_x>0</location_x>
     <location_y>498</location_y>
@@ -239,7 +239,7 @@
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1268</width>
-    <z>4</z>
+    <z>6</z>
     <height>150</height>
     <location_x>0</location_x>
     <location_y>648</location_y>
@@ -247,32 +247,53 @@
   <plugin>
     de.fau.cooja.plugins.coojatrace.CoojaTracePlugin
     <plugin_config>
-      <script>val dest = LogFile("energy.trace", List("ontime", "mote", "type"))
+      <script>//val dest = LogFile("energy.trace", List("ontime", "mote", "type"))
+val dest_stats = LogWindow("collect_stats", List("value", "mote", "var"))
 
-case class TimeAvg(last: Long, sum: Long)
-def timeSum(s: Signal[Boolean]) = s.distinct.change.foldLeft(TimeAvg(0, 0)){
-  case (TimeAvg(last, sum), true) =&gt; TimeAvg(sim.time, sum)
-  case (TimeAvg(last, sum), false) =&gt; TimeAvg(sim.time, sum+(sim.time-last))  
-}.map(_.sum)
+val stats = List("foundroute", "newparent", "routelost", "acksent", 
+  "datasent", "datarecv", "ackrecv", "badack", "duprecv", "qdrop", 
+  "rtdrop", "ttldrop", "ackdrop", "timedout")
+val statsAddr = 0x29ec // statt 0x2ba0
+var size = 4 // bytes
 
-for(mote &lt;- sim.motes.values) {
-  log(dest, timeSum(mote.radio.receiverOn), mote, "receiverOn")
-  log(dest, timeSum(mote.radio.transmitting), mote, "transmitting")
+def array2Int(arr: Array[Byte]):Int = arr.foldRight(0) { (byte, sum) =&gt; (sum &lt;&lt; 8) + byte }
 
-  val mode = Var(-1)
-  mote.asInstanceOf[mspmote.MspMote].getCPU.addOperatingModeListener(new se.sics.mspsim.core.OperatingModeListener {
-    def modeChanged(source: se.sics.mspsim.core.Chip, m: Int) { mode.update(m) }
-  })
-  log(dest, timeSum(mode.map(_ == 0)), mote, "cpuOn")
-  log(dest, timeSum(mode.map(_ == 4)), mote, "cpuIdle")
+for(mote &lt;- sim.allMotes) {
+  for(s &lt;- stats) {
+    var addr = statsAddr + stats.indexOf(s) * size
+    log(dest_stats, mote.memory.variable(addr, CArray(size)).map(array2Int), mote, s)
+  }
+}
+
+val dest_energy = LogWindow("collect-energy.log", List("energy", "mote"))
+
+// constants for sky motes
+val voltage = 3 // V
+val receiveConsumption = 20.0 * voltage // mW
+val transmitConsumption = 17.7 * voltage // mW
+val activeConsumption = 1.800 * voltage // mW
+val idleConsumption = 0.0545 * voltage // mW
+
+for(mote &lt;- sim.allMotes) {
+  val receiveTime = timeSum(mote.radio.receiverOn)
+  val transmitTime = timeSum(mote.radio.transmitting)
+  val activeTime = timeSum(mote.cpuMode === "active")
+  val idleTime = timeSum(mote.cpuMode =!= "active")
+
+  val energy: Signal[Double] = receiveTime / 1E6 * receiveConsumption + 
+    transmitTime / 1E6 * transmitConsumption +
+    activeTime / 1E6 * activeConsumption +
+    idleTime / 1E6 * idleConsumption 
+
+  log(dest_energy, energy, mote)
 }</script>
       <active>true</active>
     </plugin_config>
-    <width>600</width>
+    <width>809</width>
     <z>2</z>
-    <height>400</height>
-    <location_x>120</location_x>
-    <location_y>120</location_y>
+    <height>824</height>
+    <location_x>392</location_x>
+    <location_y>63</location_y>
   </plugin>
   <plugin>
     se.sics.cooja.plugins.ScriptRunner
@@ -289,10 +310,10 @@ TIMEOUT(100000); /* milliseconds. no action at timeout */</script>
       <active>true</active>
     </plugin_config>
     <width>600</width>
-    <z>0</z>
+    <z>3</z>
     <height>700</height>
-    <location_x>459</location_x>
-    <location_y>7</location_y>
+    <location_x>1219</location_x>
+    <location_y>131</location_y>
   </plugin>
 </simconf>
 
