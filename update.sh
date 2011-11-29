@@ -7,6 +7,13 @@ APPCP='rsync --delete -avm --include "*/" --include "*.config" --include "*.jar"
 
 mkdir -p $BUILD
 
+#Get absolute paths
+BUILD_CONTIKI=`readlink -f $BUILD_CONTIKI `
+BUILD_COOJA=`readlink -f $BUILD_COOJA `
+BUILD_REALSIM=`readlink -f $BUILD_REALSIM `
+BUILD_TRACE=`readlink -f $BUILD_TRACE `
+
+
 
 
 #rm -rf $DST
@@ -69,7 +76,7 @@ WP=$BP/cooja/apps/realsim
 
 cd $WP
 ant "-Dcooja=$DST" jar
-rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*"  $WP $DST/apps  
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*" --include "lib/**" $WP/ $DST/apps/realsim/
 
 # >>>>>>>>>>>> DryRun
 
@@ -92,7 +99,7 @@ cd $WP
 ant "-Dcooja=$DST"
 cd $WP/sqlite
 ant "-Dcooja=$DST"
-rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*" 	 $WP $DST/apps  
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --include "lib/**" --exclude "*" $WP/ "$DST/apps/trace"
 
 		
 
