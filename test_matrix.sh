@@ -12,7 +12,7 @@ LOGDIR=./logs
 PROGNAME=`basename $0`
 REV=HEAD
 RGIT="git://contiki.git.sourceforge.net/gitroot/contiki/contiki"
-TESTS="collect_10sky-times-contiki.csc"
+TESTS="sky_collect_final.csc"
 
 
 TESTDIR=`readlink -f ${TESTDIR}`
@@ -31,7 +31,7 @@ cd $WORKDIR
 	if [ ! -d ".git" ]; then
 		git clone $RGIT .
 	fi
-	REVS=`git log -100 --pretty=format:%h`
+	REVS=`git log --since=2010 --pretty=format:%h`
 cd ..	
 
 

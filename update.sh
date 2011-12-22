@@ -72,13 +72,13 @@ if [ $UPDATE_GIT = "true" ] ; then
 	git checkout origin/realsim
 fi
 
-WP=$BP/cooja/apps/realsim
+WP=$BP
 
 cd $WP
 ant "-Dcooja=$DST" jar
 rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*" --include "lib/**" $WP/ $DST/apps/realsim/
 
-# >>>>>>>>>>>> DryRun
+# >>>>>>>>>>>> CoojaTrace
 
 BP=$BUILD_TRACE
 if [ ! -d  $BP ] ; then
@@ -96,8 +96,6 @@ fi
 WP=$BP
 
 cd $WP
-ant "-Dcooja=$DST"
-cd $WP/sqlite
 ant "-Dcooja=$DST"
 rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --include "lib/**" --exclude "*" $WP/ "$DST/apps/trace"
 
