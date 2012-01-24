@@ -1,11 +1,12 @@
 #LOG="TEST-`date '+%F'`.log"
 
 
-CONTIKIPATHS=apps core cpu examples platform Makefile.include tools/empty-symbols.c tools/empty-symbols.h
+CONTIKIPATHS=apps core cpu examples platform Makefile.include tools/empty-symbols.c tools/empty-symbols.h tools/make-empty-symbols
 
 	
 $(LOGDIR)/%.log: $(WORKDIR)/%/COOJA.done 
 	cp $(<D)/COOJA.log $@  
+	-cp $(<D)/COOJA.testlog $(LOGDIR)/$(*).testlog
 	cd $(<D); \
 	if [ -f *.trace ] ; then \
 		for F in *.trace ;\
@@ -40,7 +41,7 @@ $(LOGDIR)/%.log: $(WORKDIR)/%/COOJA.done
 #matrix:	REVS:=$(shell cd $(GITDIR) && git log $(LOG_PARA) --pretty=format:%h )
 #matrix: REVL=$(patsubst %,$(LOGDIR)/%, $(REVS))
 #matrix: $(foreach TEST,$(TESTS), $(patsubst %,%#$(TEST).log, $(REVL)))
-matrix: $(foreach TEST,$(TESTS), $(patsubst %,%#$(TEST).log, $(patsubst %,$(LOGDIR)/%, $(filter-out $(BROKENREVS), $(shell cd $(GITDIR) && git log $(LOG_PARA) --pretty=format:%h )))))
+matrix: $(foreach TEST,$(TESTS), $(patsubst %,%#$(TEST).log, $(patsubst %,$(LOGDIR)/%, $(filter-out $(BROKENREVS), $(shell cd $(GITDIR) && git log --pretty=format:%h  $(LOG_PARA) )))))
 matrix: $(GITDIR)
 	echo "MATRIX"
 

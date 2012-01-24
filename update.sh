@@ -101,6 +101,27 @@ rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --incl
 
 		
 
+# >>>>>>>>>>>> CoojaTraceSqlite
+
+BP=$BUILD_TRACE_SQLITE
+if [ ! -d  $BP ] ; then
+	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/rdsp_dryrun.git $BP
+	cd $BP
+	git checkout origin/sqlite -b sqlite -t
+fi
+
+if [ $UPDATE_GIT = "true" ] ; then
+	cd  $BP
+	git fetch origin
+	git checkout origin/sqlite
+fi
+
+WP=$BP
+
+cd $WP
+ant "-Dcooja=$DST" "-Dcoojatrace=$BUILD_TRACE"
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --include "lib/**" --exclude "*" $WP/ "$DST/apps/trace-sqlite"
+
 
 
 

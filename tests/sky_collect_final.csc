@@ -10,7 +10,7 @@
   <simulation>
     <title>My simulation</title>
     <delaytime>0</delaytime>
-    <randomseed>generated</randomseed>
+    <randomseed>123</randomseed>
     <motedelay_us>10000000</motedelay_us>
     <radiomedium>
       se.sics.cooja.radiomediums.UDGM
@@ -372,7 +372,7 @@ for(mote &lt;- sim.allMotes) {
       <active>true</active>
     </plugin_config>
     <width>809</width>
-    <z>0</z>
+    <z>1</z>
     <height>824</height>
     <location_x>906</location_x>
     <location_y>99</location_y>
@@ -406,7 +406,7 @@ received = new Array();
 doubleFormat = new java.text.DecimalFormat("0.00");
 integerFormat = new java.text.DecimalFormat("00");
 for(i = 1; i &lt;= num_nodes; i++) {
-    received[i] = "__________";
+    received[i] = "";
     hops[i] = received[i];
 }
 
@@ -430,39 +430,49 @@ while(true) {
             } else if(dups &lt; 9) {
                 dups++;
             }
+			while(received[source].length &lt;= seqno){
+				received[source] += "_";
+			}
             received[source] = received[source].substr(0, seqno) + dups +
-                received[source].substr(seqno + 1, 10 - seqno);
+                received[source].substr(seqno + 1);
 
             if(hop &gt; 9) {
                 hop = "+";
             }
+			while(hops[source].length &lt;= seqno){
+				hops[source] += "_";
+			}
+
             hops[source] = hops[source].substr(0, seqno) + hop +
-                hops[source].substr(seqno + 1, 10 - seqno);
+                hops[source].substr(seqno + 1);
             print_stats();
         }
     }
     /* Signal OK if all nodes have reported 10 messages. */
     num_reported = 0;
     for(i = 1; i &lt;= num_nodes; i++) {
-        if(!isNaN(received[i][9])) {
+		tmp=received[i].replace(/_/g, "");
+        if(tmp.length &gt;= 10) { //Received 10
             num_reported++;
-        }
+		}
     }
 
-    if(num_reported == num_nodes) {
+
+    if(num_reported == num_nodes){
+        print_stats();
 		for(i = 1; i &lt;= num_nodes; i++) {
 		    if(!isNaN(received[i])) {
+				log.log("Lost packets");
 				log.testFailed();
 		    }
 		}
-        print_stats();
         log.testOK();
     }
-  }</script>
+}</script>
       <active>true</active>
     </plugin_config>
     <width>1132</width>
-    <z>1</z>
+    <z>0</z>
     <height>782</height>
     <location_x>266</location_x>
     <location_y>0</location_y>
