@@ -1,49 +1,68 @@
 #LOG="TEST-`date '+%F'`.log"
 
 
-CONTIKIPATHS=apps core cpu examples platform Makefile.include tools/empty-symbols.c tools/empty-symbols.h tools/make-empty-symbols
+CONTIKIPATHS=apps core cpu examples platform Makefile.include tools/empty-symbols.c tools/empty-symbols.h tools/make-empty-symbols Makefile scan-neighbors.c
+CONTIKIPATHS= Makefile scan-neighbors.c
+JOBS=$(wildcard $(JOBDIR)/*.job)
+JOBSD=$(patsubst %.job, %.done, $(JOBS))
 
+
+include $(JOBDESC)
+
+export GITREV
+export CFLAGS
 	
-$(LOGDIR)/%.log: $(WORKDIR)/%/COOJA.done 
+$(JOBDIR)/%.data: $(WORKDIR)/%/COOJA.done  $(JOBDIR)/%.job
+	@echo "Pos 1"
+	mkdir -p $@
 	cp $(<D)/COOJA.log $@  
-	-cp $(<D)/COOJA.testlog $(LOGDIR)/$(*).testlog
-	cd $(<D); \
-	if [ -f *.trace ] ; then \
-		for F in *.trace ;\
-			do echo "Moving  $${F} to $(LOGDIR)/$(*).$${F}" ; \
-			cp $${F} $(LOGDIR)/$(*).$${F} ; \
-		done ; \
-	fi
+	-cp $(<D)/COOJA.testlog $@
+	touch $(<D)/dummy__.db
+	for F in $(<D)/*.db ;\
+		do echo "Moving  $${F} to $@" ; \
+		cp $${F} $@ ; \
+	done ; 	
+	rm $@/dummy__.db
+	touch $(@D)/$*.done
 
 
-
-%/COOJA.done: %/log4j_config.xml
-	rm -f  $(@D)/Cooja.failed
-	$(MAKE) $(firstword $(subst #, ,$*))/Makefile.include 
-	-cd $(@D) && $(COOJA) -nogui=$(TESTDIR)/$(lastword $(subst #, ,$*)).csc   -external_tools_config=$(COOJACONFIG) -contiki=$(firstword $(subst #, ,$(@D)))  -log4j=$*/log4j_config.xml || touch $(@D)/Cooja.failed
+# Run Cooja
+%/COOJA.done:  %/checkout.done %/log4j_config.xml
+	rm -f  $*/Cooja.failed $*/*.db $*/COOJA.testlog
+	cd $* && $(COOJA) -nogui=$(TESTDIR)/$(TEST).csc   -external_tools_config=$(COOJACONFIG) -contiki=$*  -log4j=$*/log4j_config.xml || touch $*/Cooja.failed
 	touch $@
 
 
-
-#%/log4j_config.xml: %/.git 
-
-%/log4j_config.xml:: config/log4j_config.xml
-	mkdir -p $(@D)
+%/log4j_config.xml: %/checkout.done
+%/log4j_config.xml:: config/log4j_config.xml  
 	cat $< | sed 's%COOJA.log%$*/COOJA.log%'  > $@
 
 
-%/Makefile.include: $(GITDIR)
-	mkdir -p $(@D)
-	git --git-dir=$(GITDIR)/.git archive --format=tar $(notdir $*) $(CONTIKIPATHS)  | (cd $(@D) && tar xf -) || echo $(notdir $*) >> $(WORKDIR)/boken_git.txt
+
+# Export Contiki in an extra path
+%/checkout.done: $(GITDIR)
+	echo "$*"
+	# cleanup
+	rm -rf "$(@D)"
+	mkdir -p "$(@D)"
+	git --git-dir=$(GITDIR)/.git archive --format=tar $(GITREV) $(CONTIKIPATHS)  | (cd "$(@D)" && tar xf -) || echo $(GITREV) >> $(WORKDIR)/boken_git.txt
+	touch $@
+	$(MAKE) $*/log4j_config.xml
 	
+
+# This is the main job
+# A new Make is forked to ensure that each set is done one by one
+# It is the request to create the folder
+%.done: %.job $(GITDIR)
+	rm -f $@
+	$(MAKE) $*.data JOBDESC=$<
+		
 
 		
 #matrix:	REVS:=$(shell cd $(GITDIR) && git log $(LOG_PARA) --pretty=format:%h )
 #matrix: REVL=$(patsubst %,$(LOGDIR)/%, $(REVS))
 #matrix: $(foreach TEST,$(TESTS), $(patsubst %,%#$(TEST).log, $(REVL)))
-matrix: $(foreach TEST,$(TESTS), $(patsubst %,%#$(TEST).log, $(patsubst %,$(LOGDIR)/%, $(filter-out $(BROKENREVS), $(shell cd $(GITDIR) && git log --pretty=format:%h  $(LOG_PARA) )))))
-matrix: $(GITDIR)
-	echo "MATRIX"
+matrix: $(JOBSD)
 
 
 
@@ -59,10 +78,13 @@ $(GITDIR): $(GITDIR)/.git
 
 .PHONY: $(GITDIR)
 	
-.PRECIOUS: $(GITDIR) %/Makefile.include %/COOJA.log %/COOJA.done
+.PRECIOUS: $(GITDIR) %/Makefile.include %/COOJA.log %/COOJA.done %/log4j_config.xml
 	
 
 info:
-	echo  $(TESTDIR)
-	echo  $(COOJACONFIG)
-	echo  $(COOJA)
+	@echo  $(TESTDIR)
+	@echo  $(COOJACONFIG)
+	@echo  $(COOJA)
+	@echo  $(JOBS)
+	@echo  $(JOBSD)
+

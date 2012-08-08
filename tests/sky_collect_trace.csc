@@ -7,7 +7,8 @@
   <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/realsim</project>
   <project EXPORT="discard">[APPS_DIR]/trace</project>
-  <project EXPORT="discard">[APPS_DIR]/trace/sqlite</project>
+  <project EXPORT="discard">[APPS_DIR]/trace-sqlite</project>
+  <project EXPORT="discard">[APPS_DIR]/trace-plot</project>
   <simulation>
     <title>My simulation</title>
     <delaytime>0</delaytime>
@@ -37,7 +38,7 @@
       <moteinterface>se.sics.cooja.mspmote.interfaces.MspMoteID</moteinterface>
       <moteinterface>se.sics.cooja.mspmote.interfaces.SkyButton</moteinterface>
       <moteinterface>se.sics.cooja.mspmote.interfaces.SkyFlash</moteinterface>
-      <moteinterface>se.sics.cooja.mspmote.interfaces.SkyByteRadio</moteinterface>
+      <moteinterface>se.sics.cooja.mspmote.interfaces.Msp802154Radio</moteinterface>
       <moteinterface>se.sics.cooja.mspmote.interfaces.MspSerial</moteinterface>
       <moteinterface>se.sics.cooja.mspmote.interfaces.SkyLED</moteinterface>
     </motetype>
@@ -352,18 +353,18 @@
 
 val dest_stats = sqlitelog.LogTable(sqlitelog.SQLiteDB("coojatrace.db"), "collect_stats"  , List( "mote", "var", "value"), timeColumn = "Time")
 
-val stats = List("foundroute", "newparent", "routelost", "acksent", 
-  "datasent", "datarecv", "ackrecv", "badack", "duprecv", "qdrop", 
-  "rtdrop", "ttldrop", "ackdrop", "timedout")
-val statsAddr = 0x2ba0 // statt 0x2ba0
+val members = List("foundroute", "newparent", "routelost", "acksent", 
+ "datasent", "datarecv", "ackrecv", "badack", "duprecv", "qdrop", 
+ "rtdrop", "ttldrop", "ackdrop", "timedout")
 var size = 4 // bytes
 
-def array2Int(arr: Array[Byte]):Int = arr.foldRight(0) { (byte, sum) =&gt; (sum &lt;&lt; 8) + byte }
+def array2Int(arr: Array[Byte]):Int = arr.foldRight(0) { (byte, sum) =&gt; (sum &lt;&lt; 8) + (byte &amp; 0xFF) }
 
 for(mote &lt;- sim.allMotes) {
-  for(s &lt;- stats) {
-    var addr = statsAddr + stats.indexOf(s) * size
-    log(dest_stats, mote, s, mote.memory.variable(addr, CArray(size)).map(array2Int))
+  val stats = mote.memory.variable("stats", CArray(size))
+  for(s &lt;- members) {
+    var index = members.indexOf(s)
+    log(dest_stats, mote, s, *(&amp;(stats) + index).map(array2Int))
   }
 }
 

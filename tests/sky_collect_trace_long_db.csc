@@ -350,7 +350,12 @@
       <script>//val dest = LogFile("energy.trace", List("ontime", "mote", "type"))
 //val dest_stats = LogWindow("collect_stats", List("value", "mote", "var"))
 
-val dest_stats = sqlitelog.LogTable(sqlitelog.SQLiteDB("coojatrace.db"), "variables"  , List( "DUMP", "Mote", "Var", "Data"), timeColumn = "Time")
+
+val db = sqlitelog.SQLiteDB("collect.db")
+val db2 = sqlitelog.SQLiteDB("energy.db")
+
+val dest_stats = sqlitelog.LogTable(db, "variables"  , List( "DUMP", "Mote", "Var", "Data"), timeColumn = "Time")
+val dest_stats2 = sqlitelog.LogTable(db2, "variables"  , List( "DUMP", "Mote", "Var", "Data"), timeColumn = "Time")
 val Freq = 1000
 
 
@@ -392,9 +397,9 @@ for(mote &lt;- sim.allMotes) {
     idleTime / 1E6 * idleConsumption 
 
 
-  log(dest_stats, sim.milliSeconds.change.filter(_ % Freq == 0) ,  mote, "energy", energy)
+  log(dest_stats2, sim.milliSeconds.change.filter(_ % Freq == 0) ,  mote, "energy", energy)
 }</script>
-      <active>true</active>
+      <active>false</active>
     </plugin_config>
     <width>809</width>
     <z>0</z>

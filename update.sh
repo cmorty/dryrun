@@ -122,6 +122,27 @@ cd $WP
 ant "-Dcooja=$DST" "-Dcoojatrace=$BUILD_TRACE"
 rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --include "lib/**" --exclude "*" $WP/ "$DST/apps/trace-sqlite"
 
+# >>>>>>>>>>>> CoojaTraceSqlite
+
+BP=$BUILD_TRACE_PLOT
+if [ ! -d  $BP ] ; then
+	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
+	cd $BP
+	git checkout origin/coojatraceplot -b coojatraceplot -t
+fi
+
+if [ $UPDATE_GIT = "true" ] ; then
+	cd  $BP
+	git fetch origin
+	git checkout origin/coojatraceplot
+fi
+
+WP=$BP
+
+cd $WP
+echo  ant "-Dcooja=$DST" "-Dcoojatrace=$BUILD_TRACE"
+ant "-Dcooja=$DST" "-Dcoojatrace=$BUILD_TRACE"
+rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --include "lib/**" --exclude "*" $WP/ "$DST/apps/trace-plot"
 
 
 

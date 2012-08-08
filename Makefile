@@ -4,6 +4,7 @@
 
 include	config.sh
 
+export JOBDIR=jobs
 export LOG=currentlog.log
 export WORKDIR=/build/morty/workdir
 export TESTDIR=$(abspath ./tests)

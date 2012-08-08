@@ -3,7 +3,7 @@
 source config.sh
 
 ATT=
-if [ $# -eq 1 ]; then
+if [ $# -gt 0 ]; then
 	ATT="-quickstart=$1"
 fi
 
