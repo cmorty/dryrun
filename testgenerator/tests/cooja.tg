@@ -1,0 +1,11 @@
+implicit val conf = new Config
+
+conf.outdir = "/tmp/morty/dryrun/experiment"
+conf.workdir = "/tmp/morty/dryrun/run"
+
+val cj =  new Cooja("$(WORJPATH)/tests/sometest.csc")
+
+	
+conf.addstep(cj)
+
+conf.generate

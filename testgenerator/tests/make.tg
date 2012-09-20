@@ -1,0 +1,24 @@
+implicit val conf = new Config
+
+conf.outdir = "/tmp/morty/dryrun/experiment"
+conf.workdir = "/tmp/morty/dryrun/run"
+
+val mk =  new Make
+
+mk.addFlag("TEST1", "foo")
+mk.addFlag("TEST2", "foo", "bla")
+mk.addFlag("TEST3", "foo")
+mk.addFlag("TEST3", "bar")
+
+
+mk.addCFlag("CF1", "1")
+mk.addCFlag("CF2", "1")
+mk.addCFlag("CF2", "2")
+mk.addCFlag("CF3", "1")
+mk.addCFlag("CF3", "2")
+mk.addCFlag("CF3", "3")
+
+	
+conf.addstep(mk)
+
+conf.generate

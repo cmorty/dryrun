@@ -1,0 +1,8 @@
+implicit val conf = new Config
+
+conf.outdir = "/tmp/morty/dryrun/experiment"
+conf.workdir = "/tmp/morty/dryrun/run"
+
+conf.addstep(new GetDir("."))
+
+conf.generate
