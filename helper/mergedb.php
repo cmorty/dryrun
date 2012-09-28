@@ -1,11 +1,10 @@
 <?
 
-$outdb = "/tmp/morty/all.sqlite";
-$jobpath = "jobs";
+$outdb = "results.sqlite";
+$resultpath = "results";
 $debug = false;
 
 
-$params = array("ROUTE_CONF_ENTRIES", "ROUTE_CONF_DECAY_THRESHOLD", "ROUTE_CONF_DEFAULT_LIFETIME" );
 
 error_reporting(-1);
 
@@ -43,18 +42,31 @@ function ecb($errno, $errstr, $errfile, $errline)
 
 set_error_handler('ecb');
 
+/******************** HELPER ************************/
+function endsWith( $str, $sub ) {
+   return ( substr( $str, strlen( $str ) - strlen( $sub ) ) === $sub );
+}
 
+function getConf($folder){
+	$rv = array();
+	$cdata = file($folder . '/conf.txt');
+	foreach($cdata as $dat){
+		if(strlen($dat) < 2) continue
+		var_dump(explode("=", $dat));
+		list($key, $val) = explode("=", $dat);
+		$rv[trim($key)] = trim($val);
+	}
+	return $rv;
+}
 /***********************************************************************/
 
 function opendb($dbname){
-	
-
 	return $db;
 }
 
 function dexec($query){
 	global $debug, $db;
-	if($debug) echo $query . "\n";
+	if($debug) echo "SQL-E: " .  $query . "\n";
 	try{
 		$res = $db->exec($query);
 	}catch(PDOException $e){
@@ -65,7 +77,7 @@ function dexec($query){
 
 function dquery($query){
 	global $debug, $db;
-	if($debug) echo $query . "\n";
+	if($debug) echo "SQL-Q: " .  $query . "\n";
 	try{
 		$res = $db->query($query);
 	}catch(PDOException $e){
@@ -77,35 +89,103 @@ function dquery($query){
 }
 
 
+//Find subfolders
+$folders = scandir(".");
+
+
+
+//var_dump($folders);
+//Walk through folders to find Configuration issues
+$keys = array();
+$dbs = array();
+$error = false;
+$badfolder = array();
+foreach($folders as $folder){
+	$cfolder = $folder . '/' . $resultpath;
+	if($folder[0] == '.') continue;
+	if(!is_dir($folder)) continue;
+	if(!file_exists("$folder/conf.txt")){
+		echo "Warning: No conf.txt in $folder\n";
+		$badfolders[] = $folder;
+		continue;
+	}
+	if(!is_dir($cfolder)){
+		echo "WARNING: No results in $cfolder\n";
+		$badfolders[] = $folder;
+		continue;
+	}
+
+
+	$lkeys = array();
+	$ldbs = array();
+
+	$lkeys = array_keys(getConf($folder));
+
+	foreach(scandir($cfolder) as $dbname){
+		if(!endsWith($dbname, ".db")) continue;
+		$dbname = strstr($dbname, '.', true);
+		$ldbs[] = $dbname;
+	}
+
+	if(count($keys) == 0){
+		echo "Reference directory: $folder\n";
+		$dbs = $ldbs;
+		$keys= $lkeys;
+		
+	} else {
+		if(count(array_diff($keys, $lkeys)) != 0){
+			echo "WARNING: Keys in $folder do not match\n";
+			echo "Reference: " . explode($keys , ", ") . "\n";
+			echo "Found:     " . explode($lkeys, ", ") . "\n";
+			$error = true;
+		}
+		if(count(array_diff($dbs, $ldbs)) != 0){
+			echo "WARNING: DBs in $folder do not match\n";
+			echo "Reference: " . explode($dbs , ", ") . "\n";
+			echo "Found:     " . explode($ldbs, ", ") . "\n";
+			$error = true;
+		}
+	}
+}
+
+$folders = array_diff($folders, $badfolders);
+
+if($error){
+	echo "Sopping because auf errors\n";
+	var_dump($dbs);
+	var_dump($keys);
+	exit(2);
+}
+
 
 // Create DB
+
 if(file_exists($outdb)) unlink($outdb);
 $db = new PDO("sqlite:".$outdb);
 
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 //Turn of journal
-
 dexec("PRAGMA journal_mode =  OFF; ");
 dexec("PRAGMA synchronous = OFF;");
 
-$query = "CREATE TABLE data( " . implode(" INTEGER, ", $params) . " INTEGER," .
+//Create a table for each Database
+foreach($dbs as $dbt){
+	$query = "CREATE TABLE $dbt( " . implode(" INTEGER, ", $keys) . " INTEGER," .
 		"VAR TEXT, " .
 		"Mote INTEGER, " .
 		"Time INTEGER, " .
 		"Data NUMERIC);";
 
-dexec($query);
+	dexec($query);
 
-dexec('CREATE INDEX DATASET ON data ('. implode(", ", $params) .', VAR);');
-
-$folders = scandir($jobpath);
+	dexec("CREATE INDEX DATASET_$dbt ON $dbt (" . implode(", ", $keys) .', VAR);');
+}
 
 $pos = 0;
-//var_dump($folders);
 $time_start = microtime(true);
 foreach($folders as $folder){
-	$curd = $jobpath . '/' . $folder;
+	$curd =  $folder . '/' . $resultpath;
 	$pos ++;
 
 	//if($pos == 10) break;
@@ -114,47 +194,53 @@ foreach($folders as $folder){
 
 		$runtime = microtime(true) - $time_start;
 
-		printf( "\r %4d / %4d : %.3d%% - %3ds of %3ds",$pos, count($folders), floor($pos / count($folders) * 100), floor($runtime), floor($runtime / $pos * count($folders)));
+		printf( "\r %4d / %4d : %.3d%% - %3ds of %3ds",$pos, count($folders), floor($pos / count($folders) * 100), 
+		floor($runtime), floor($runtime / $pos * count($folders)));
 		
 	}
-
 	if(! is_dir($curd)){
-
 		continue;
 	}
 
 
-	$bq = 'INSERT INTO DATA SELECT ';
+
+
 	if($debug) echo "\n\n";
 	if($debug) echo "$folder \n";
-	$pars = explode("#", $folder);
-	//var_dump($pars);
+	
 
-	if(count($pars) != count($params) + 2  ){
-		echo "\nIgnoring ${folder}\n";
+	//Prepare statement
+	$bq = 'SELECT ';
+	$conf = getConf($folder);
+
+	if(count($keys) != count($conf)){
+		echo "\nIgnoring ${folder} - There's something wrong\n";
 		continue;
 	}
-	for($i= 0; $i < count($params); $i++){
-		//var_dump($pars[$i]);
-		$d = explode("_", $pars[$i]);
-		$bq .= array_pop($d) . ", ";
+
+	foreach($keys as $key){
+		$bq .= $conf[$key] . ", ";
 	}
 
 	$bq .= "var, replace(mote, 'Sky ', '' ), time, data FROM variables;";
 
 
-	$files = scandir($curd);
-	foreach($files as $file){
-		$ff = explode(".", $file);
-		if(strcmp("db", array_pop($ff))){
-			continue;
-		}
-		dexec("ATTACH DATABASE '".$curd. '/' .$file."' AS import;");
-		dexec($bq);
-		dexec("DETACH DATABASE import;");
+
+	foreach($dbs as $dbname){				
+			dexec("ATTACH DATABASE '". $curd .  '/' .$dbname.".db' AS import;");
+			$tbls = dquery("SELECT COUNT(*) FROM import.SQLITE_MASTER;")->fetch();
+
+			if($tbls[0] == 0){
+				echo "\nNo Table in $curd/$dbname.db - Skipping\n";
+			} else {
+				dexec("INSERT INTO " . $dbname .  " " . $bq);
+			}
+			dexec("DETACH DATABASE import;");
 	}
 
 }
+
+
 
 echo "\nDatabase: " . $outdb . "\n";
 
