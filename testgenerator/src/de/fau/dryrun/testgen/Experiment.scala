@@ -1,14 +1,25 @@
 package de.fau.dryrun.testgen
 
 import scala.collection.mutable.ArrayBuffer
+import java.security.MessageDigest
 
 object Experiment{
 	val init = new Command{
-		def getcmd()(implicit exp: Experiment):String = "mkdir -p \"" + exp.chroot + "\"\n"
+		def getcmd()(implicit exp: Experiment):String = {
+		
+			
+			{
+				if(exp.clean) {
+					"rm -rf \"" + exp.chroot + "\"\n"
+				} else {
+					""
+				} 
+			} + "mkdir -p \"" + exp.chroot + "\"\n"
+			
+		}
 	}
 		
 }
-
 
 
 
@@ -17,10 +28,10 @@ class Experiment(var name:String = "", val cmds:ArrayBuffer[Command] = new Array
 	if(cmds.size == 0) cmds += Experiment.init
 	
 	
+	def clean = conf.clean
 	
 	
-	
-	def snaitize(path:String):String = {
+	def sanitize(path:String):String = {
 		path.replace("\"", "").replace("=","")
 	}
 	
@@ -33,9 +44,18 @@ class Experiment(var name:String = "", val cmds:ArrayBuffer[Command] = new Array
 	}
 	
 	
-	def chroot = snaitize(conf.workdir + "/" +  name)
+	def chroot = conf.workdir + "/" +  hash
 	
-	def datapath = snaitize(conf.outdir +"/"+ name)
+	def datapath = conf.outdir +"/"+  hash
+	
+	def namepath =  sanitize(conf.namepath +"/"+  name)
+	
+	def hash:String = {
+		val md = MessageDigest.getInstance("SHA-1");
+		val ba = config.mkString("=", "\n").getBytes()
+		val hash = md.digest(ba).map("%02X" format _)
+		hash.mkString
+	}
 	
 	
 	def addname(name:String){
