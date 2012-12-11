@@ -58,7 +58,7 @@ class Experiment(var name:String = "", val cmds:ArrayBuffer[Command] = new Array
 	}
 	
 	
-	def addname(name:String){
+	def addName(name:String){
 		if(name.equals("")) return
 		if(this.name.length > 1) this.name += "_"
 		this.name += name.replace(" ", "-") 
