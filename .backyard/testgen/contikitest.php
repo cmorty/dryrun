@@ -1,4 +1,7 @@
 <?php
+
+
+
 require(gentest.php);
 
 #git_select($conf, "-n1");
@@ -12,7 +15,7 @@ git_set($conf, "origin/master");
 
 test_set($conf, "sky_collect_trace_100_bad_db");
 
-var_dump($conf);
+var_dump($test->getconf());
 
 
 traverse($conf, 0, $job);
