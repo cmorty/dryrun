@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-source config.sh
+source config/config.sh
 
 
 APPCP='rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --exclude "*" '
@@ -82,15 +82,15 @@ rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --excl
 
 BP=$BUILD_TRACE
 if [ ! -d  $BP ] ; then
-	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/rdsp_dryrun.git $BP
+	git clone git://i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
 	cd $BP
-	git checkout origin/sqlite -b sqlite -t
+	git checkout origin/coojatrace -b coojatrace -t
 fi
 
 if [ $UPDATE_GIT = "true" ] ; then
 	cd  $BP
 	git fetch origin
-	git checkout origin/sqlite
+	git checkout coojatrace/coojatrace
 fi
 
 WP=$BP
@@ -105,9 +105,9 @@ rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --incl
 
 BP=$BUILD_TRACE_SQLITE
 if [ ! -d  $BP ] ; then
-	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/rdsp_dryrun.git $BP
+	git clone git://i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
 	cd $BP
-	git checkout origin/sqlite -b sqlite -t
+	git checkout origin/coojatracesqlite -b coojatracesqlite -t
 fi
 
 if [ $UPDATE_GIT = "true" ] ; then
@@ -126,7 +126,7 @@ rsync --delete -avm --include "*/" --include "*.config" --include "*.jar" --incl
 
 BP=$BUILD_TRACE_PLOT
 if [ ! -d  $BP ] ; then
-	git clone ssh://gitosis@i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
+	git clone git://i4git.informatik.uni-erlangen.de/contiki_projects.git $BP
 	cd $BP
 	git checkout origin/coojatraceplot -b coojatraceplot -t
 fi
