@@ -79,7 +79,7 @@ class Testbed(val firmware:String)(implicit val conf:Config) extends Step {
 								<runs>
 									<num>1</num>
 									<startup>{startup}</startup>
-									<rand>{rand}</rand>
+									<rand>{seed}</rand>
 								</runs>
 							</exp>
 					
