@@ -16,8 +16,8 @@ class Cooja(sim:String)(implicit val conf:Config) extends Step {
 	val files = Set[String]()
 	files += "COOJA.log"
 	files += "COOJA.testlog"
-	var coojaconf = "config/testenv.config"
-	var log4jconf="$(LOG4JCONFIG)"
+	var coojaconf:String = null
+	var log4jconf:String= null
 	var random =  new ArrayBuffer[Long](-1)
 		
 	def addfile(f:String){
@@ -74,7 +74,10 @@ class Cooja(sim:String)(implicit val conf:Config) extends Step {
 					}
 					
 					//rv += "cp 
-					crv += "cd " + exp.chroot + "&&  " + Cooja.coojapath + " -nogui="+simp + " -external_tools_config=" + coojaconf + " -log4j=" + log4jconf + " " + "\n"
+					crv += "cd " + exp.chroot + "&&  " + Cooja.coojapath + " -nogui=" + simp 
+					if(coojaconf != null) crv += " -external_tools_config=" + coojaconf 
+					if(log4jconf != null) crv += " -log4j=" + log4jconf 
+					crv += "\n"
 					for(f <- files){
 						crv += "mkdir -p " + exp.datapath + "/" + conf.resultpath + "\n"
 						crv += "cp " + exp.chroot + "/" + f + " " + exp.datapath + "/" + conf.resultpath + "\n"
