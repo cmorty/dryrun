@@ -23,7 +23,7 @@ class Testbed(val firmware:String)(implicit val conf:Config) extends Step {
 	
 	var startup = 4
 	var rand = 0
-		
+	var time = 360
 		
 	val files = Set[String]()
 	files += "*.log"
@@ -73,7 +73,7 @@ class Testbed(val firmware:String)(implicit val conf:Config) extends Step {
 					//Generate config
 					
 					val xmld = <exp>
-								<time>360</time>
+								<time>{time}</time>
 								<firmware>{exp.chroot + "/" + firmware}</firmware>
 								{ nodes.map(x => <mote>{x}</mote>)}
 								<runs>
