@@ -111,15 +111,15 @@ class Make(rundir:String = ".") extends Step {
 				val cexp = exp.copy
 				
 				//CFLAGS
-				if(cflag.param.size > 1) cexp.addName("CF§" + cflag.mkString("#",""))
+				cexp.addName("CF§" + cflag.mkString("#",""))
 				cexp.addConfig(new Parset(cflag.param.map(s => "CF_" + s._1 -> s._2)))
 				
 				//CONF
-				if(conf.param.size > 1) cexp.addName("D§" + conf.mkString("#","-"))
+				cexp.addName("D§" + conf.mkString("#","-"))
 				cexp.addConfig( new Parset(conf.param.map(s => "C_" + s._1 -> s._2)))
 				
 				///Parameter
-				if(par.param.size > 1) cexp.addName("MAKE§" + par.mkString("#","-"))
+				cexp.addName("MAKE§" + par.mkString("#","-"))
 				cexp.addConfig( new Parset(par.param.map(s => "MAKE_" + s._1 -> s._2)))
 				
 				
@@ -141,7 +141,7 @@ class Make(rundir:String = ".") extends Step {
 								" CFLAGS=\"" + cpar.para + "\" make " + par.para 
 								
 						if(targets.size > 0){
-							rv += targets.mkString(" ") 
+							rv += " " + targets.mkString(" ") 
 						}
 						rv += "\n"
 						rv
