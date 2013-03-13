@@ -63,8 +63,9 @@ class Config {
 		//io.Source.fromFile("data.txt").mkString
 		
 		
-		
-		for(exp <- exps){
+	    
+		for(ind <- 0 to (exps.length - 1)){
+			val exp =  exps(ind)
 			val sb = new StringBuilder
 			val d = new File(exp.datapath)
 			d.mkdirs
@@ -97,13 +98,19 @@ class Config {
 			}
 			
 			//If no results exist add to new
+			
+			val cmdstr = "echo \"Experiment " + {ind + 1}  + " of " + exps.length + "\"\n" + 
+					"\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n"
+			
+			
+			wAll.write(cmdstr)
 			if(! new File(d, resultpath).exists()){
-				wNew.write("\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n" )
+				wNew.write(cmdstr)
 			}
 			
 			wLinks.write( "ln -s " + d.toString() + " " + exp.namepath );
 			
-			wAll.write("\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n" )
+			
 			
 			
 		}
