@@ -63,6 +63,8 @@ class Make(rundir:String = ".") extends Step {
 	private val confs = new Flagman
 	private val flags = new Flagman
 	private val targets = ListBuffer[String]()
+	var executable = "*.sky"
+	
 	
 	
 	def addFlag(name:String, options:String*){
@@ -144,6 +146,9 @@ class Make(rundir:String = ".") extends Step {
 							rv += " " + targets.mkString(" ") 
 						}
 						rv += "\n"
+						if(executable.length() > 0){
+							rv += "size " + executable + " > " + exp.datapath + "/" + conf.resultpath + "/sizes.txt\n"
+						}
 						rv
 					}
 				})
