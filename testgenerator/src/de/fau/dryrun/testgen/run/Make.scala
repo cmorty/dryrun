@@ -57,7 +57,7 @@ private class Flagman {
 }
 
 
-class Make(rundir:String = ".") extends Step {
+class Make(rundir:String = ".")(implicit val conf:Config) extends Step {
 
 	private val cflags = new Flagman
 	private val confs = new Flagman
@@ -108,7 +108,7 @@ class Make(rundir:String = ".") extends Step {
 		val rv = new ArrayBuffer[Experiment]
 		for(par:Parset <- flags.toParset;
 		    cflag:Parset <- cflags.toParset;
-		    conf:Parset <- confs.toParset;
+		    bconf:Parset <- confs.toParset;
 			exp <- exps){		
 				val cexp = exp.copy
 				
@@ -117,8 +117,8 @@ class Make(rundir:String = ".") extends Step {
 				cexp.addConfig(new Parset(cflag.param.map(s => "CF_" + s._1 -> s._2)))
 				
 				//CONF
-				cexp.addName("D§" + conf.mkString("#","-"))
-				cexp.addConfig( new Parset(conf.param.map(s => "C_" + s._1 -> s._2)))
+				cexp.addName("D§" + bconf.mkString("#","-"))
+				cexp.addConfig( new Parset(bconf.param.map(s => "C_" + s._1 -> s._2)))
 				
 				///Parameter
 				cexp.addName("MAKE§" + par.mkString("#","-"))
@@ -133,7 +133,7 @@ class Make(rundir:String = ".") extends Step {
 				
 				
 				//Convert from Conf to CFLAG
-				val cpar = new Parset(cflag.param ++ conf.param.map(s => "-D" + s._1 -> s._2) )
+				val cpar = new Parset(cflag.param ++ bconf.param.map(s => "-D" + s._1 -> s._2) )
 				
 				
 				cexp.addcommand(new Command {
