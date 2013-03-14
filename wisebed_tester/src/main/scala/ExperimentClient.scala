@@ -7,7 +7,7 @@ import java.util.Timer
 import java.util.TimerTask
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.mutable.Buffer
-import scala.parallel.Future
+import scala.concurrent.Future
 import scala.util.Random
 import scala.xml.XML
 import org.apache.log4j.Level
@@ -27,6 +27,11 @@ import wrappers.WrappedMessage._
 import org.slf4j.LoggerFactory
 import de.fau.wisebed.jobs.MoteFlashState
 import scala.collection.JavaConversions._
+import java.text.SimpleDateFormat
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.concurrent.Promise
+import scala.util.Success
 
 
 object ExperimentClient {
@@ -64,9 +69,9 @@ object ExperimentClient {
 
 		//Get Motes
 		log.debug("Starting Testbed")
-		val tb = new Testbed(smEndpointURL, snaaEndpointURL, rsEndpointURL)
+		val tb = new Testbed(smEndpointURL)
 		log.debug("Requesting Motes")
-		val motesAvail = tb.getnodes()
+		val motesAvail = tb.getNodes()
 		log.debug("Motes: " + motesAvail.mkString(", "))
 
 		log.debug("Logging in: \"" + prefix + "\"/\"" + login + "\":\"" + password + "\"")
@@ -88,7 +93,9 @@ object ExperimentClient {
 		}
 
 		for (r <- res) {
-			log.debug("Got Reservations: \n" + r.dateString() + " for " + r.getNodeURNs.mkString(", "))
+			val df = new SimpleDateFormat("dd.MM hh:mm:ss")
+			log.debug("Got Reservations: " + r.dateString() + " for " + r.getNodeURNs.mkString(", ") + " from " + df.format(r.from.getTime) + " to " +  df.format(r.to.getTime))
+			
 		}
 
 		if (!res.exists(_.now)) {
@@ -96,7 +103,7 @@ object ExperimentClient {
 			val from = new GregorianCalendar
 			val to = new GregorianCalendar
 			from.add(Calendar.MINUTE, -1)
-			to.add(Calendar.MINUTE, exp_time + 8000)
+			to.add(Calendar.MINUTE, exp_time + 3)
 			val r = tb.makeReservation(from, to, exp_motes, "login")
 			log.debug("Got Reservations: \n" + r.dateString() + " for " + r.getNodeURNs.mkString(", "))
 			res ::= r
@@ -167,9 +174,9 @@ object ExperimentClient {
 		val lrand = new Random(0);
 		for (r <- exp_runs) {
 			val num = (r \ "num").text.trim.toInt
-			val rnd: Int = {
+			val rnd:Long = {
 				val rndv = r \ "rand"
-				if (rndv.length > 0) rndv.text.trim.toInt else lrand.nextInt
+				if (rndv.length > 0) rndv.text.trim.toLong else lrand.nextInt
 			}
 			val startupt: Int = {
 				val stv = r \ "startup"
@@ -207,7 +214,7 @@ object ExperimentClient {
 		
 	}
 
-	def runtest(exp: Experiment, motes: Seq[String], sec: Int, logname: String, startup: Int = 0, rand: Int = 0): Boolean = {
+	def runtest(exp: Experiment, motes: Seq[String], sec: Int, logname: String, startup: Int = 0, rand: Long = 0): Boolean = {
 		
 		val out = new java.io.PrintWriter(logname)
 		var secrem = sec
@@ -234,26 +241,22 @@ object ExperimentClient {
 	
 			} else {
 				val tm = new Date
+				//Make reproduceable
 				val rnd = new Random(rand)
-				val ftrs = Buffer[Future[Job[_]]]()
+				val ftrs = Buffer[Future[NodeOkFailJob]]()
 	
 				for (mote <- motes) {
 					val restm = new Date(tm.getTime + 1000 + (rnd.nextInt % (startup * 1000)))
-					val ftr = new TimerTask with Future[NodeOkFailJob] {
-						var j: NodeOkFailJob = null;
-						def isDone = (j != null)
-						def apply: NodeOkFailJob = synchronized { while (!isDone) wait; j }
-						def run = synchronized {
-							j = exp.resetNodes(List(mote))
-							notify
-						}
+					val prom =  Promise[NodeOkFailJob]()
+					val ftr = new TimerTask {
+						def run = prom.complete(new Success(exp.resetNodes(List(mote))))
 					}
-					ftrs += ftr
+					ftrs += prom.future
 					val tmr = new Timer(true)
 					tmr.schedule(ftr, restm)
 				}
 				//Get jobs from futures
-				resj = ftrs.map(_()).toList
+				resj = ftrs.map(Await.result(_, Duration.Inf)).toList
 	
 			}
 			if (!resj.forall(_.success)) {
@@ -318,7 +321,7 @@ object ExperimentClient {
 			
 			true
 		} catch {
-			case e => {
+			case e:Throwable => {
 				log.error("Something failed: ", e)
 				false
 			}
