@@ -147,7 +147,10 @@ class Make(rundir:String = ".")(implicit val conf:Config) extends Step {
 						}
 						rv += "\n"
 						if(executable.length() > 0){
-							rv += "size " + executable + " > " + exp.datapath + "/" + conf.resultpath + "/sizes.txt\n"
+							
+							rv += "mkdir -p " +  exp.datapath + "/" + conf.resultpath + "\n" +  
+								"cd " + exp.chroot + "/" + rundir  +" && "+ 
+								" size " + executable + " > " + exp.datapath + "/" + conf.resultpath + "/sizes.txt\n"
 						}
 						rv
 					}
