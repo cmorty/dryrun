@@ -36,6 +36,11 @@ getdata <- function(db, conf) {
 	ans <- dbGetQuery(db$dbc, cstr("select VAR, ", fld, ", seed, Mote, max(Data) as Data, success  from ", db$tab , "  
 							GROUP BY Var, ",fld , ", seed, Mote ;"))
 	
+	ffor <- function(l){
+		if(l > 10 ) return(as.character(l)) 
+		else return(paste("0", as.character(l),sep=""))
+	}
+	
 	fcon <- function(...){return(paste(..., sep='_'))}
 	if(length(conf$filed) > 1){
 		ans$attr <- apply(ans[,conf$field],1, fcon)
