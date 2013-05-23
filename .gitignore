@@ -2,3 +2,5 @@ logs
 workdir
 cooja
 config.sh
+test_collect
+work_nettest

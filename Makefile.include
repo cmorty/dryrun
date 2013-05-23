@@ -2,7 +2,7 @@
 
 
 
-include	config.sh
+include	$(DRYRUNDIR)/config/config.sh
 
 export JOBDIR=jobs
 export LOG=currentlog.log
@@ -20,7 +20,9 @@ export TESTS=sky_collect_final
 export BROKENREVS=3034ac4 76a8e49 17e7827 659be7c dc9cbe6
 export BROKENREVS+= `cat boken_git.txt`
 
-include runtest.mk
+include $(DRYRUNDIR)/helper/runtest.mk
+include $(DRYRUNDIR)/testgen/testgen.mk
+
 
 
 #%:

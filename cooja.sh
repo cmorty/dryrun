@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source config.sh
+source config/config.sh
 
 ATT=
 if [ $# -gt 0 ]; then
