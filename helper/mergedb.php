@@ -70,7 +70,7 @@ function dexec($query){
 	try{
 		$res = $db->exec($query);
 	}catch(PDOException $e){
-		die($e->getMessage()." line: ".$e->getLine()."\n");
+		die($e->getMessage()." line: ".$e->getLine()." SQL: $query\n");
 	}
 }
 
@@ -81,7 +81,7 @@ function dquery($query){
 	try{
 		$res = $db->query($query);
 	}catch(PDOException $e){
-		die($e->getMessage()." line: ".$e->getLine()."\n");
+		die($e->getMessage()." line: ".$e->getLine()." SQL: $query\n");
 	
 	}
 
@@ -99,7 +99,7 @@ $folders = scandir(".");
 $keys = array();
 $dbs = array();
 $error = false;
-$badfolder = array();
+$badfolders = array();
 foreach($folders as $folder){
 	$cfolder = $folder . '/' . $resultpath;
 	if($folder[0] == '.') continue;
@@ -168,6 +168,11 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 //Turn of journal
 dexec("PRAGMA journal_mode =  OFF; ");
 dexec("PRAGMA synchronous = OFF;");
+
+dexec("CREATE TABLE DRYRUN (key TEXT, value TEXT);");
+foreach($keys as $key){
+	dexec("INSERT INTO DRYRUN (key, value) VALUES ('conf','$key');");
+}
 
 //Create a table for each Database
 foreach($dbs as $dbt){
