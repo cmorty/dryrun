@@ -8,6 +8,8 @@ import java.io.File
 import scala.collection.mutable.StringBuilder
 import scala.actors.Futures._
 import scala.actors.Future
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.Stack
 
 
 
@@ -40,10 +42,13 @@ class Config {
 	
 	
 	
+	
+	
 	def generate {
 		println("running")
-		
-		var exps = new ArrayBuffer[Experiment]
+	
+		val randmap = HashMap[String, Stack[String]]()
+		var exps = ArrayBuffer[Experiment]()
 		exps += new Experiment
 		
 		for(step <- steps){
@@ -54,12 +59,16 @@ class Config {
 		
 		val fAll =  new File(outdir + "/all.jobs")
 		val fNew =  new File(outdir + "/new.jobs")
+		val fRand =  new File(outdir + "/rand.jobs")
 		val fLinks =  new File(outdir + "/lnks.sh")
+		
 		new File(outdir).mkdirs();
 			
 		val wAll  = new BufferedWriter(new FileWriter(fAll))
 		val wNew  = new BufferedWriter(new FileWriter(fNew))
+		val wRand  = new BufferedWriter(new FileWriter(fRand))
 		val wLinks  = new BufferedWriter(new FileWriter(fLinks))
+		
 		//io.Source.fromFile("data.txt").mkString
 		
 		
@@ -90,17 +99,12 @@ class Config {
 				val cnf = new BufferedWriter(new FileWriter(cf))
 				cnf.write (cnfs)
 				future{cnf.close}
-				
-				
-				
-					
-					
+	
 			}
 			
 			//If no results exist add to new
 			
-			val cmdstr = "echo \"Experiment " + {ind + 1}  + " of " + exps.length + "\"\n" + 
-					"\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n"
+			val cmdstr = "\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n"
 			
 			
 			wAll.write(cmdstr)
@@ -109,6 +113,10 @@ class Config {
 			}
 			
 			wLinks.write( "ln -s " + d.toString() + " " + exp.namepath );
+			
+			//Add Command to randmap
+			val randkey = exp.config.nonRandom
+			randmap.getOrElseUpdate(randkey, Stack[String]()) push cmdstr
 			
 			
 			
@@ -119,8 +127,16 @@ class Config {
 		wLinks.close
 		fLinks.setExecutable(true)
 
-		
-		
+		while(randmap.size > 0){
+			for(rmapel <- randmap){
+				wRand.write(rmapel._2.pop)
+				//If there are no more commands remove element.
+				if(rmapel._2.size == 0){
+					randmap -= rmapel._1
+				}
+			}
+		}
+		wRand.close
 		
 		
 		

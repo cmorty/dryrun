@@ -10,16 +10,16 @@ import scala.xml.XML
 import scala.collection.mutable.Set
 import scala.collection.mutable.ArrayBuffer
 
-object WisebedCal{
+object RealSimCal{
 	var path = "$WISEBEDEXP";
 	 
 }
 
-class WisebedCal(val setfile:String)(implicit val conf:Config) extends Step {
+class RealSimCal(val setfile:String)(implicit val conf:Config) extends Step {
     
 	val nodes = Set[String]()
 	var time = 5
-	var output = "'cal.dump'"
+	var output = "cal.dump"
 		
 	def addNode(mote:String *){
 		nodes ++= mote
@@ -33,13 +33,12 @@ class WisebedCal(val setfile:String)(implicit val conf:Config) extends Step {
 <expconf>
 	<time>{time.toString}</time> 	
 	{ nodes.map(x => <mote>{x}</mote>)}
-	<output>{output}</output>
-</expconf>
-			
+	<output>'{output}'</output>
+</expconf>	
 			val expfile = exp.datapath + "/calib.xml" 
 			XML.save(expfile , xmld)
 						
-			"cd " + exp.chroot + " && " + WisebedCal.path + " " + expfile  + " " +  setfile  + "\n" +
+			"cd " + exp.chroot + " && " + RealSimCal.path + " " + expfile  + " " +  setfile  + "\n" +
 			"mkdir -p " + exp.datapath + "/" + conf.resultpath + "\n" +
 			"cp" + " " + exp.chroot + "/" + output + " " + exp.datapath + "/" + conf.resultpath + "\n"
 		}

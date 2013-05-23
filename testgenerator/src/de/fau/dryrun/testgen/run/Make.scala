@@ -38,9 +38,9 @@ private class Flagman {
 			for(dat <- v){
 				println("dat " + dat)
 				for(par <- rv){
-					println("par" + par)
+					println("par: " + par.para)
 					val cpar = par.copy				 
-					cpar.add(d , dat, v.size == 1)					
+					cpar.add(d , dat, v.size == 1, false)					
 					outp += cpar
 				}
 			}
@@ -127,7 +127,7 @@ class Make(rundir:String = ".")(implicit val conf:Config) extends Step {
 				
 				
 				// Merge conf to CFlags				
-				for(f <- cflag.param) cexp.addConfig("CF_" + f._1 , f._2._1, f._2._2)
+				for(f <- cflag.param) cexp.addConfig("CF_" + f._1 , f._2._1, f._2._2, false)
 				
 				
 				

@@ -57,7 +57,7 @@ class Cooja(sim:String)(implicit val conf:Config) extends Step {
 			seed <- random){
 
 			val cexp = exp.copy
-			cexp.addConfig("seed",seed.toString, (exp == -1))
+			cexp.addConfig("seed",seed.toString, (exp == -1), true)
 			cexp.addName("seed:" + seed.toString)
 			
 			cexp.addcommand(new Command {

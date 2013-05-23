@@ -35,8 +35,8 @@ class Experiment(var name:String = "", val cmds:ArrayBuffer[Command] = new Array
 		path.replace("\"", "").replace("=","")
 	}
 	
-	def addConfig(name:String, value:String, unique: Boolean){
-		config.add(name, value, unique)
+	def addConfig(name:String, value:String, unique: Boolean, random:Boolean){
+		config.add(name, value, unique, random)
 	}
 	
 	def addConfig(ps:Parset){
