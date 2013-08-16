@@ -54,8 +54,10 @@ class Config {
 		for(step <- steps){
 			println("registering step: " + step)
 			exps = step.registerExperiment(exps)
-			println("Number of experiments: " + exps.size )
+			println("Number of experiments: " + exps.size )			
 		}
+		
+		Experiment.count = exps.size 
 		
 		val fAll =  new File(outdir + "/all.jobs")
 		val fNew =  new File(outdir + "/new.jobs")

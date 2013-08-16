@@ -18,6 +18,8 @@ object Experiment{
 			
 		}
 	}
+	
+	var count = 0
 		
 }
 
