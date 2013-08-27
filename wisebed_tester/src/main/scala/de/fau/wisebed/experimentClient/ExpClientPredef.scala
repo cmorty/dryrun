@@ -28,11 +28,7 @@ object ExpClientPredef {
 		e.allmotes
 	}
 		
-	def cleanup(){
-		if(e == null) throw new Throwable("Experiment not initialized")
-		e.cleanup
-	}
-	
+
 	def startExp(time:Int, motes:List[String]=null, res_time:Int = 0 ) = {
 		if(e == null) throw new Throwable("Experiment not initialized")
 		e.startExp(time, motes, res_time, false)		
@@ -45,9 +41,14 @@ object ExpClientPredef {
 		
 	}
 	
-	def getActiveMotes(){
+	def getActiveNodes() = {
 		if(e == null) throw new Throwable("Experiment not initialized")
-		e.getActiveMotes
+		e.getActiveNodes
+	}
+	
+	def getActiveNodes(nodeTape:String) = {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.getActiveNodes(nodeTape)
 	}
 	
 	def flash(firmware: String, motes: List[String] = null, trys: Int = 2) = {
@@ -56,9 +57,25 @@ object ExpClientPredef {
 	}
 	
 	
-	def resetNodes(trys:Int, startupTime:Int = 0, startupString:String = "Starting", bootTimeout:Int=60, randSeed:Integer = null) = {
+	def flash(nodeFirmwareMap:Map[String, String]): Boolean = {
 		if(e == null) throw new Throwable("Experiment not initialized")
-		e.resetNodes(trys, startupTime, startupString, bootTimeout, randSeed)
+		e.flashMap(nodeFirmwareMap, 2)
+	}
+	
+	def flash(nodeFirmwareMap:Map[String, String], trys: Int): Boolean = {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.flashMap(nodeFirmwareMap, trys)
+	}
+	
+	def flashNull(nodes:Seq[String]=null, trys: Int = 2): Boolean = {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.flashNull(nodes, trys)
+	}
+	
+	
+	def resetNodes(startupTime:Int = 0, randSeed:Integer = null, startupString:String = "Starting", bootTimeout:Int=60, trys:Int = 2): Boolean = {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.resetNodes(startupTime, randSeed, startupString, bootTimeout, trys)
 	}
 	
 	def addLogger(logger:MessageLogger) = {
@@ -91,13 +108,35 @@ object ExpClientPredef {
 		e.remLogger(logger)
 	}
 	
-	/**
-	 * Wait in secs
-	 */
-	def waitEnd(){
+	def cleanup(terminate:Boolean = true){
 		if(e == null) throw new Throwable("Experiment not initialized")
-		e.waitEnd()
-		
+		e.cleanup(terminate)
+	}
+	
+	
+	def collectData(command:String, end:String, timeout:Int = 5, nodes:Seq[String] = null) {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.collectData(command, end, timeout, nodes)
+	}
+	
+	def resetTime() {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.resetTime()
+	}
+	
+	
+	def send(command:String, nodes:Seq[String] = null){
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.send(command, nodes)
+	}
+	
+	
+	/**
+	 * Only wait to the end of the experiement or also terminate the session?
+	 */
+	def waitEnd(cleanup:Boolean = true, leaveTime:Int= 0){
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.waitEnd(cleanup, leaveTime)
 	}
 	
 	
