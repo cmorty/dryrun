@@ -127,7 +127,9 @@ class Config {
 		wNew.close
 		wAll.close
 		wLinks.close
-		fLinks.setExecutable(true)
+		List(fLinks, fNew,fAll,fRand).foreach(_.setExecutable(true))
+
+		
 
 		while(randmap.size > 0){
 			for(rmapel <- randmap){
