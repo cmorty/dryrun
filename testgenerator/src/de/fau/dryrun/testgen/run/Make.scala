@@ -72,22 +72,43 @@ class Make(rundir:String = ".")(implicit val conf:Config) extends Step {
 		flags.add(name, opt)
 	} 
 	
+	
 	def addCFlag(name:String, options:String*){
 		val opt = options.toSet
 		cflags.add(name, opt)
 	} 
 	
+	/**
+	 * Add an range of numbers as CFLAG
+	 * @param name Name of the flag
+	 * @param start Number to start
+	 * @param stop Number to stop
+	 * @param step The steps
+	 */
 	def addCFlag(name:String, start:Int, stop:Int, step:Int = 1){
 		val r = new Range(start, stop + 1, step)
 		addCFlag(name, r.toList.map(_.toString):_*)
 	}
 	
+	/**
+	 * Add CFLAGs
+	 * Result CFLAGS+=<name>=<option>
+	 * @param name Name of the flag
+	 * @param options Options to pass 
+	 */
 	def addConf(name:String, options:String*){
 		val opt = options.toSet
 		confs.add(name, opt)
 	} 
 	
-	
+
+	/** Add Configution option
+	 *  CFLAGS will be extended by -D<name>=<value>
+	 * @param name Name of the configuration option
+	 * @param start Start value
+	 * @param stop Stop value
+	 * @param step Step
+	 */
 	def addConf(name:String, start:Int, stop:Int, step:Int = 1){
 		val r = new Range(start, stop + 1, step)
 		addConf(name, r.toList.map(_.toString):_*)
