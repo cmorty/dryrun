@@ -15,7 +15,7 @@ object Wisebed1{
 	private var suffxs = Buffer[String]()
 }
 
-class Wisebed1(val defaultfirmware:String = null)(implicit val conf:Config) extends Step {
+class Wisebed1(val defaultFirmware:String = null)(implicit val conf:Config) extends Step {
 	
 	var setfile = "config/settings.xml" 
 			
@@ -25,6 +25,9 @@ class Wisebed1(val defaultfirmware:String = null)(implicit val conf:Config) exte
 	var rand = 0
 	var time = 20
 	val firmware = scala.collection.mutable.Map[String, String]()
+	val defaultNodeFirmware = scala.collection.mutable.Map[String, String]()
+	var runScript = "waitEnd()\n" 
+	var bootString = "Rime started"
 		
 	val files = Set[String]()
 	files += "*.log"
@@ -37,12 +40,16 @@ class Wisebed1(val defaultfirmware:String = null)(implicit val conf:Config) exte
 		files += f
 	}
 
-	def addFirmware(mote:String, file:String) {addFirmware(List(mote), file)}		
+	def addFirmware(node:String, file:String) {addFirmware(List(node), file)}		
 	
-	def addFirmware(motes:List[String], file:String){		
-		for(m <- motes){
+	def addFirmware(nodes:List[String], file:String){		
+		for(m <- nodes){
 			firmware.update(m, file)
 		}
+	}
+	
+	def addDefaultFirmware(nodeType:String, file:String) {
+		defaultNodeFirmware.update(nodeType, file)
 	}
 	
 	def addRand(seed:Long*){
@@ -63,8 +70,8 @@ class Wisebed1(val defaultfirmware:String = null)(implicit val conf:Config) exte
 	}
 	
 	
-	def addNode(mote:String *){
-		nodes ++= mote
+	def addNode(node:String *){
+		nodes ++= node
 	}
 	
 
@@ -104,21 +111,30 @@ class Wisebed1(val defaultfirmware:String = null)(implicit val conf:Config) exte
 init("""" + setfile+ """")
 startExp(""" + time + "," + {if(nodes.size == 0 ) "null" else nodes.mkString("List(\"", "\", \"", "\")")  } + ","+ {(time + 6) *  Experiment.count} + """)
 log.info("Res: " + resToString.mkString("\n"))
-var fmap = Map(""" + { firmware.map(x => {'"' + x._1 + "\" -> \"" + x._2 + '"'}).mkString(", ")} + """)
+var fmap = Map[String, String]()
 """ + {
-	if(defaultfirmware !=  null){"""
-val missm = getActiveMotes.toSet ++ fmap.keys
-fmap = fmap ++ missm.map(_ -> """ + "\"" + defaultfirmware + "\")"
-	} else "" 
+	var str = ""
+	//Fill with default firmware
+	if(defaultFirmware !=  null) str += "fmap = fmap ++ getActiveNodes.map(_ -> \"udp-client.ihex\").toMap\n"
+	
+	//Overwrite with nodeType firmware
+	for((mType, fw) <- defaultNodeFirmware) {
+		str += "fmap = fmap ++ getActiveNodes(\"" + mType + "\").map(_ -> \"" + fw + "\").toMap\n"
+	}
+
+	//Overwrite with node specific firmware
+	
+	str += "fmap = fmap ++ Map(" + { firmware.map(x => {'"' + x._1 + "\" -> \"" + x._2 + '"'}).mkString(", ")} + ")\n"	
+	str
 } + """
 flash(fmap)
-resetNodes(""" + startup + ", " + seed +  """)
 addLogLine("wisebed.log")
-waitEnd()
-"""					
+resetNodes(""" + startup + ", " + seed +  ", \"" + bootString +"\"" + """)
+resetTime()
+""" + runScript		
 					
 					val pw = new java.io.PrintWriter(new File(exp.datapath + "/exp" + suffix + ".ec"))				    
-					pw.write(cmd.toString)
+					pw.write(cmd)
 			      	pw.close()
 				    
 					var crv = ""					
