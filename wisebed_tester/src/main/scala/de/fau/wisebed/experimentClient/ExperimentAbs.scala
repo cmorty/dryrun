@@ -443,7 +443,6 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	
 	def resetTime() {
 		val to = new GregorianCalendar
-		startTime = to.clone.asInstanceOf[GregorianCalendar]
 		to.add(Calendar.MINUTE, time)
 		expend = to
 	}
