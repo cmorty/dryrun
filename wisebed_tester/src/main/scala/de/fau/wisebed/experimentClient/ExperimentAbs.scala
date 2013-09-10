@@ -150,7 +150,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		
 		val r = cr.get
 		val to = new GregorianCalendar
-		startTime = to.clone
+		startTime = to.clone.asInstanceOf[GregorianCalendar]
 		to.add(Calendar.MINUTE, time)
 		expend = to
 		if(r.to.before(to)){			
@@ -443,7 +443,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	
 	def resetTime() {
 		val to = new GregorianCalendar
-		startTime = to.clone
+		startTime = to.clone.asInstanceOf[GregorianCalendar]
 		to.add(Calendar.MINUTE, time)
 		expend = to
 	}
