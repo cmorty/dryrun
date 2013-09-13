@@ -157,6 +157,10 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			reservations ::= r
 		} else if (resFailAction==WaitNext && (curres.get.to.before(toWhenStartingNow) || !curres.get.mine) ) {
 			// This could be more sophisticated, but will do for now
+			//First delete all our reservations in the future
+			val myres = reservations.filter(_.mine)
+			myres.foreach(tb.freeReservation(_))
+			
 			log.debug("Requesting reservation after the current one. Reason: " + {if(curres.get.mine) "Not enaugh Teim" else "Not my reservation"} )
 			val from = curres.get.to.copy
 			from.add(Calendar.SECOND, +2)
