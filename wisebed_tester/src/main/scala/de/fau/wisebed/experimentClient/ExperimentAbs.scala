@@ -37,7 +37,24 @@ import de.fau.wisebed.messages.MsgLiner
 import de.fau.wisebed.wrappers.ChannelHandlerConfiguration
 import de.fau.wisebed.WisebedApiConversions._
 
+/**
+ *  Select what to do if is not possible to run the experiment now
+ */
+object ResFailAction extends Enumeration {
+	type ResFailAction = Value
+	val Fail = Value ///< Return an exception 
+	val TakeIt = Value ///< Take the reservation even if there is not enough time
+	val WaitNext = Value ///< Try to make a reservation after the current resercation
+}
+
+import ResFailAction._
+
 class ExperimentAbs(conffile: String = "config.xml") {
+	
+	
+
+	
+	
 	val log = LoggerFactory.getLogger(this.getClass)
 	
 	val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
@@ -109,7 +126,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		rv.toList
 	}
 	
-	def allmotes = _allmotes
+	def allnodes = _allmotes
 	
 
 	
@@ -117,50 +134,60 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	 * @param time Time in minutes
 	 * @param motes The Motes to use
 	 * @param res_time Time to make reservation if none exists
-	 * @param takeit Take the reservation if it it ends before time
+	 * @param resFailAction What to do if a reservation fails: see ResFailAction 
 	 * @return True on success
 	 */
-	def startExp(time:Int, nodes:List[String]=null, res_time:Int = 0, takeit:Boolean = false ):Boolean = {
+	def startExp(time:Int, nodes:List[String]=null, res_time:Int = 0, resFailAction:ResFailAction = ResFailAction.Fail ):Boolean = {
 		this.time = time;
 		selNodes = {if(nodes != null) nodes else _allmotes}
 		
 		val curres = reservations.find(_.now)
-		
-		if(curres.isEmpty) {
+
+		val toWhenStartingNow = new GregorianCalendar
+		toWhenStartingNow.add(Calendar.MINUTE, time)
+		//Check whether we want to make an reservation
+		if(curres.isEmpty) { 			
 			log.debug("No Reservations or in the Past- Requesting")
 			val from = new GregorianCalendar
 			val to = new GregorianCalendar
 			from.add(Calendar.SECOND, -2)
 			to.add(Calendar.MINUTE, {if(res_time != 0) res_time else time} + 3)
 			val r = tb.makeReservation(from, to, selNodes, "login")
-			log.debug("Got Reservations: \n" + r.dateString() + " for " + r.nodeURNs.mkString(", "))
+			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.mkString(", "))
 			reservations ::= r
-		} else if(!curres.get.mine) {			
-			throw new Exception("Someone els has an reservation")
-		}
-		
-		
-		val cr = reservations.find(_.now)
-		if(cr.isEmpty){
-			throw new Exception("Unable to get reservation")
+		} else if (resFailAction==WaitNext && (curres.get.to.before(toWhenStartingNow) || !curres.get.mine) ) {
+			// This could be more sophisticated, but will do for now
+			log.debug("Requesting reservation after the current one. Reason: " + {if(curres.get.mine) "Not enaugh Teim" else "Not my reservation"} )
+			val from = curres.get.to.copy
+			from.add(Calendar.SECOND, +2)
+			val to = from.copy
+			to.add(Calendar.MINUTE, {if(res_time != 0) res_time else time} + 3)
+			val r = tb.makeReservation(from, to, selNodes, "login")
+			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.mkString(", "))
+			reservations ::= r
+			
+			val prom = Promise[Unit]()
+			val tmr = new java.util.Timer()
+			log.debug("Setting up Timer")
+			tmr.schedule( new java.util.TimerTask{
+				def run () {
+					log.debug("Timer finished")
+					prom.complete(null)
+				}
+			}, from.getTime)
+			
+			Await.result(prom.future, Duration.Inf)
+			log.debug("Continue")
 
-		}
-		
-		
-		
-		val r = cr.get
-		val to = new GregorianCalendar
-		startTime = to.clone.asInstanceOf[GregorianCalendar]
-		to.add(Calendar.MINUTE, time)
-		expend = to
-		if(r.to.before(to)){			
-			if(!takeit){
-				throw new Exception("Not able to run experiment in requested time. Reservation end: " + df.format(r.to.getTime) + "Experiment end: " + df.format(to.getTime))				
-			} 
-			log.debug("Not able to run experiment in requested time. Reservation end: " + df.format(r.to.getTime) + "Experiment end: " + df.format(to.getTime))
-			expend = r.to
-		}
-		
+		} else if(!curres.get.mine) {
+			//Not our reservation
+			throw new Exception("Someone els has an reservation")
+		} else if(resFailAction==TakeIt && curres.get.to.before(toWhenStartingNow) ) {
+			log.info("Not able to run experiment in requested time. Reservation end: " + df.format(curres.get.to.getTime) + "Experiment end: " + df.format(toWhenStartingNow.getTime) + " - Taking it anyway")
+		} else if (curres.get.to.before(toWhenStartingNow)){
+			throw new Exception("Not able to run experiment in requested time. Reservation end: " + df.format(curres.get.to.getTime) + "Experiment end: " + df.format(toWhenStartingNow.getTime))		
+		} 
+
 		exp = new Experiment(reservations.toList, tb)
 		val statusj = exp.areNodesAlive(selNodes)
 		val status = statusj.status
@@ -458,8 +485,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	 * @param end A string to determin the end of the output data
 	 * @param timeout The timeout in seconds
 	 * @param motes The motes to apply this to. If it is null all active motes are used
-	 * @return true on success
-	 * @return false if timed out
+	 * @return Success
 	 */
 	def collectData(command:String, end:String, timeout:Int = 5, nodes:Seq[String] = null):Boolean = {
 		val nts = {if(nodes != null) nodes else activeNodes }	
