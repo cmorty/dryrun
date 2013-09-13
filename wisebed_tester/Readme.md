@@ -4,7 +4,7 @@ The RealSim Test Client
 Compilation
 -----------
 You need to install the Wisebed Scala API first: https://github.com/cmorty/scala-client -> `mvn install`  
-run 'mvn package'
+run `mvn package`
 
 Running
 -------
@@ -14,7 +14,7 @@ Running
 Documentation
 -------------
 
-You first need to save the wisebed settings in an config.xml -> `see config.example.xml`
+You first need to save the wisebed settings in an `config.xml` -> see `config.example.xml`
 
 The documentation can be built using `maven scala:doc`. The interesting part is `ExpClientPredef`
 
@@ -22,7 +22,7 @@ An example scipt may look like
 
 ```scala
 init() //Initialize project
-startExp(20) //Start an 20 minute experiment
+startExp(20) //Start an 20 minute experiment - The reservation will be 23 minutes to allow flashing
 flash("myprog.hex") //Flash myprog on all nodes
 addLogLine("wisebed.log") // Log everything into wisebed.log
 resetNodes(4, 18, "Rime started") //Reset Nodes randomly within 4 seconds; Seed randomness with 18; Wait for "Rime Started"
