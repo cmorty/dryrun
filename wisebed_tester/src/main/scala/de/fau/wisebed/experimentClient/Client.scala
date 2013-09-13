@@ -11,6 +11,7 @@ import scala.tools.nsc.interpreter.Results
 import java.io.StringWriter
 import java.io.PrintWriter
 import org.slf4j.LoggerFactory
+import java.net.URLClassLoader
 
 trait Foo {
 
@@ -18,6 +19,8 @@ trait Foo {
 
 object Client {
 
+	val classdebug = false
+	
 	def main(args: Array[String]) {
 		val log = LoggerFactory.getLogger(this.getClass)
 
@@ -43,6 +46,7 @@ object Client {
 		
 		//Get Jarpath
 		val jarfile = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
+		if(classdebug) log.debug("JarPath: " + jarfile)
 		val jarpath = jarfile.take(jarfile.lastIndexOf("/") + 1) 
 
 		//Get classpath from Manifest
@@ -59,6 +63,22 @@ object Client {
 			}
 		}
 		
+		if(classdebug) log.debug("Classpathes: " + cpath.mkString(", "))
+		
+		//More debug
+		if(classdebug){
+			val classpath = new StringBuffer();
+			var applicationClassLoader = this.getClass().getClassLoader();
+			if (applicationClassLoader == null) {
+				applicationClassLoader = ClassLoader.getSystemClassLoader();
+			}
+			val urls = (applicationClassLoader.asInstanceOf[URLClassLoader]).getURLs();
+			for(i <- 0 to urls.length - 1) {
+				classpath.append(urls(i).getFile()).append("\r\n");
+			}
+			log.debug(classpath.toString())
+		}
+      
 		
 		val settings = new Settings
 		settings.bootclasspath.value = cpath.mkString(java.io.File.pathSeparator)
