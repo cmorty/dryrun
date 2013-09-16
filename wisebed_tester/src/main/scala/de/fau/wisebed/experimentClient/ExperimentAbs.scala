@@ -121,7 +121,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		val rv = ArrayBuffer[String]()
 		
 		for(r <- reservations) {
-			rv.add("Got Reservations: " + r.dateString() + " for " + r.getNodeURNs.mkString(", ") + " from " + df.format(r.from.getTime) + " to " + df.format(r.to.getTime))
+			rv.add("Got Reservations: " + r.dateString() + " for " + r.nodeURNs.mkString(", ") + " from " + df.format(r.from.getTime) + " to " + df.format(r.to.getTime))
 		}
 		rv.toList
 	}
