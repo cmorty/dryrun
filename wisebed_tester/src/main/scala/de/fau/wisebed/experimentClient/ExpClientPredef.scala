@@ -177,7 +177,8 @@ object ExpClientPredef {
 	
 	/**
 	 * Log all output to a File
-	 * Format: <ms since start>:<node>:<String>
+	 *  - Format: <ms since Epoch>:<node>:<String>
+	 *  - Epoch:  January 1, 1970 00:00:00.000 GMT (Gregorian)
 	 * @param file The Filename
 	 * @return The logger
 	 */

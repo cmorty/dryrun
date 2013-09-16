@@ -67,7 +67,6 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	var expend:GregorianCalendar = null
 	val loggers = ListBuffer[MessageLogger]()
 	var time = 0;
-	var startTime:GregorianCalendar = null
 	
 	//Constructor
 	
@@ -421,7 +420,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		val out = new java.io.PrintWriter(file)
 		
 		val logger = new MessageLogger(mi => {
-			out.println((mi.timestamp.getTimeInMillis - startTime.getTimeInMillis) + ":" + mi.node + ": " + mi.dataString)
+			out.println(mi.timestamp.getTimeInMillis  + ":" + mi.node + ": " + mi.dataString)
 			out.flush
 		}) with MsgLiner
 		
