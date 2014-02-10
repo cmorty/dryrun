@@ -12,106 +12,81 @@ import java.io.StringWriter
 import java.io.PrintWriter
 import org.slf4j.LoggerFactory
 import java.net.URLClassLoader
+import commands._
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
 
-trait Foo {
 
-}
+case class Config(
+		cmd:Config => Command = null,
+		file:File = null ,
+		val confFile:File = new File("./config.xml"),
+		loglevel:Level=Level.WARN
+)
+
+class Command(conf:Config);
+
 
 object Client {
 
-	val classdebug = false
+	
+	val dlevels = List("OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "ALL")
+
 	
 	def main(args: Array[String]) {
 		val log = LoggerFactory.getLogger(this.getClass)
-
-
-		
-		
-
 		de.fau.wisebed.util.Logging.setDefaultLogger
-
-		if (args.length != 1) {
-			printf("Wrong number of arguments.\n")
-			sys.exit(1)
+		
+		
+		val parser = new scopt.OptionParser[Config]("Wisebed Client") {
+			
+			
+			opt[File]('c', "conf")
+				.action { (x, c) => c.copy(confFile = x) }
+				.text("An alternative configuration file. The default is \"" + (new Config).confFile + "\"")
+				
+			opt[String]('d', "debug")
+				.action { (x, c) => c.copy(loglevel = Level.toLevel(x)) }
+				.validate(x => if(Level.toLevel(x) != null) success else failure("Unknown Loglevel: " + x))
+				.text("Loglevel: " + dlevels.mkString(", "))
+				
+			opt[Unit]('v', "verbose")
+				.action { (x, c) => c.copy(loglevel = Level.DEBUG) }
+				.text("alias for -d DEBUG")
+			
+			
+			cmd("run") 
+				.action { (_, c) =>  c.copy(cmd = x => new Run(x)) } 
+				.text("Run a script")
+				.children(
+						arg[File]("<file>")
+						.action { (x, c) =>  c.copy(file = x) }
+						.text("File to run")
+				)
+				
+				
+			cmd("list")
+				.action { (_, c) =>  c.copy(cmd = x => new List(x)) }
+				.text("List nodes")
+				
+			cmd("state")
+				.action { (_, c) =>  c.copy(cmd = x => new NodeState(x)) }
+				.text("Get Node states")
+				
+			checkConfig { c => if(c.cmd == null) failure("Missing command") else success}
 		}
-
-		val f = new File(args(0));
-
-		if (!f.exists()) {
-			printf("Config file not found.")
-		}
-
-		val input = new BufferedReader(new FileReader(f))
 
 		
-		//Get Jarpath
-		val jarfile = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-		if(classdebug) log.debug("JarPath: " + jarfile)
-		val jarpath = jarfile.take(jarfile.lastIndexOf("/") + 1) 
-
-		//Get classpath from Manifest
-		val resources = getClass.getClassLoader.getResources("META-INF/MANIFEST.MF");
-		val cpath = Buffer[String]()
-
-		//Get classpath from Manifest 
-		while (resources.hasMoreElements()){
-			val manifest = new Manifest(resources.nextElement().openStream());
-			val attr = manifest.getMainAttributes.getValue("Class-Path")
-			//Convert to absolut paths
-			if (attr != null) {				
-				cpath ++= attr.split(" ").map(p => {"file:" + {if(p(1) == '/') "" else jarpath} +  p })
-			}
+		
+		parser.parse(args, Config())map { cnf =>
+			Logger.getRootLogger.setLevel(cnf.loglevel)
+			cnf.cmd(cnf)
+		} getOrElse {		  
 		}
 		
-		if(classdebug) log.debug("Classpathes: " + cpath.mkString(", "))
+	
 		
-		//More debug
-		if(classdebug){
-			val classpath = new StringBuffer();
-			var applicationClassLoader = this.getClass().getClassLoader();
-			if (applicationClassLoader == null) {
-				applicationClassLoader = ClassLoader.getSystemClassLoader();
-			}
-			val urls = (applicationClassLoader.asInstanceOf[URLClassLoader]).getURLs();
-			for(i <- 0 to urls.length - 1) {
-				classpath.append(urls(i).getFile()).append("\r\n");
-			}
-			log.debug(classpath.toString())
-		}
-      
-		
-		val settings = new Settings
-		settings.bootclasspath.value = cpath.mkString(java.io.File.pathSeparator)
-		settings.usejavacp.value = true
 
-		val ew = new StringWriter
-		val pw = new PrintWriter(ew, true)
-		val sI = new IMain(settings, pw)
-
-		//Add imports
-		sI.addImports(
-			"de.fau.wisebed.experimentClient.ExpClientPredef",
-			"de.fau.wisebed.experimentClient.ExpClientPredef._",
-			"de.fau.wisebed.messages._",
-			"de.fau.wisebed.wrappers._",
-			"org.slf4j.LoggerFactory",
-			"de.fau.wisebed._");
-		sI.interpret("val log = LoggerFactory.getLogger(\"Script\")\n")
-
-		var str: String = null
-		val lines = scala.io.Source.fromFile(f).mkString
-
-		sI.interpret(lines) match {
-			case Results.Error => {
-				pw.flush
-				log.error("Compile Error\n" + ew.toString)
-				sys.exit(5)
-			}
-			case Results.Incomplete =>
-			case Results.Success =>
-		}
-
-		println("\n\nDone\n\n");
 
 	}
 

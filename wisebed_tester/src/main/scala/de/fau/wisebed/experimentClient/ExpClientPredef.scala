@@ -1,11 +1,10 @@
 package de.fau.wisebed.experimentClient
 
 import scala.language.implicitConversions
-
 import org.slf4j.LoggerFactory
-
 import de.fau.wisebed.messages.MessageLogger
 import ResFailAction._
+import java.io.File
 
 
 object ExpClientPredef {
@@ -27,9 +26,13 @@ object ExpClientPredef {
 	 * }}}
 	 * 
 	 */
-	def init(conffile: String = "config.xml"){
+	def init(conffile: File = new File("config.xml")){
 		e = new ExperimentAbs(conffile)
 	}
+	
+	def init(conffile: String) { init(new File(conffile)) }
+	
+	
 	
 	
 	/**
@@ -173,6 +176,12 @@ object ExpClientPredef {
 	def addLogger(logger:MessageLogger) = {
 		if(e == null) throw new Throwable("Experiment not initialized")
 		e.addLogger(logger)
+	}
+	
+	
+	def addLogCons() = {
+		if(e == null) throw new Throwable("Experiment not initialized")
+		e.addLogCons
 	}
 	
 	/**

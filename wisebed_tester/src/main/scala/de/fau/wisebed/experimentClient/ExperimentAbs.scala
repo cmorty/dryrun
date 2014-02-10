@@ -6,7 +6,6 @@ import java.util.Date
 import java.util.GregorianCalendar
 import java.util.Timer
 import java.util.TimerTask
-
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 import scala.collection.JavaConversions.mapAsScalaMap
@@ -22,9 +21,7 @@ import scala.concurrent.future
 import scala.util.Random
 import scala.util.Success
 import scala.xml.XML
-
 import org.slf4j.LoggerFactory
-
 import de.fau.wisebed.Experiment
 import de.fau.wisebed.Testbed
 import de.fau.wisebed.jobs.Job
@@ -36,6 +33,8 @@ import de.fau.wisebed.messages.MessageWaiter
 import de.fau.wisebed.messages.MsgLiner
 import de.fau.wisebed.wrappers.ChannelHandlerConfiguration
 import de.fau.wisebed.WisebedApiConversions._
+import java.io.File
+
 
 /**
  *  Select what to do if is not possible to run the experiment now
@@ -47,13 +46,15 @@ object ResFailAction extends Enumeration {
 	val WaitNext = Value ///< Try to make a reservation after the current resercation
 }
 
-import ResFailAction._
 
-class ExperimentAbs(conffile: String = "config.xml") {
-	
-	
 
+
+class ExperimentAbs(conffile: File) {
 	
+	import ResFailAction._
+	
+	def this(conffile:String) = this(new File(conffile))
+	def this() = this("config.xml")
 	
 	val log = LoggerFactory.getLogger(this.getClass)
 	
@@ -75,7 +76,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 
 	log.info("Loading Wisebed config: " + conffile)
 
-	val config = XML.load(conffile)
+	val config = XML.loadFile(conffile)
 
 	val smEndpointURL = (config \ "smEndpointURL").text
 
@@ -87,8 +88,8 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	log.debug("Starting Testbed")
 	val tb = new Testbed(smEndpointURL)
 	log.debug("Requesting Motes")
-	val _allmotes = tb.getNodes() 
-	log.debug("Motes: " + _allmotes.mkString(", "))
+	val _allnodes = tb.getNodes() 
+	log.debug("Motes: " + _allnodes.sorted.mkString(", "))
 	log.info("Logging in: \"" + prefix + "\"/\"" + login + "\":\"" + password + "\"")
 	tb.addCredencials(prefix, login, password)
 	
@@ -120,12 +121,15 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		val rv = ArrayBuffer[String]()
 		
 		for(r <- reservations) {
-			rv.add("Got Reservations: " + r.dateString() + " for " + r.nodeURNs.mkString(", ") + " from " + df.format(r.from.getTime) + " to " + df.format(r.to.getTime))
+			rv.add("Got Reservations: " + r.dateString() + " for " + r.nodeURNs.sorted.mkString(", ") + " from " + df.format(r.from.getTime) + " to " + df.format(r.to.getTime))
 		}
 		rv.toList
 	}
 	
-	def allnodes = _allmotes
+	/**
+	 * Get all Nodes
+	 */
+	def allnodes = _allnodes
 	
 
 	
@@ -136,9 +140,9 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	 * @param resFailAction What to do if a reservation fails: see ResFailAction 
 	 * @return True on success
 	 */
-	def startExp(time:Int, nodes:List[String]=null, res_time:Int = 0, resFailAction:ResFailAction = ResFailAction.Fail ):Boolean = {
+	def startExp(time:Int, nodes:List[String]=null, res_time:Int = 0, resFailAction:ResFailAction = Fail ):Boolean = {
 		this.time = time;
-		selNodes = {if(nodes != null) nodes else _allmotes}
+		selNodes = {if(nodes != null) nodes else _allnodes}
 		
 		val curres = reservations.find(_.now)
 
@@ -152,7 +156,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			from.add(Calendar.SECOND, -2)
 			to.add(Calendar.MINUTE, {if(res_time != 0) res_time else time} + 3)
 			val r = tb.makeReservation(from, to, selNodes, "login")
-			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.mkString(", "))
+			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.sorted.mkString(", "))
 			reservations ::= r
 		} else if (resFailAction==WaitNext && (curres.get.to.before(toWhenStartingNow) || !curres.get.mine) ) {
 			// This could be more sophisticated, but will do for now
@@ -166,7 +170,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			val to = from.copy
 			to.add(Calendar.MINUTE, {if(res_time != 0) res_time else time} + 3)
 			val r = tb.makeReservation(from, to, selNodes, "login")
-			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.mkString(", "))
+			log.debug("Got Reservation: \n" + r.dateString() + " for " + r.nodeURNs.sorted.mkString(", "))
 			reservations ::= r
 			
 			val prom = Promise[Unit]()
@@ -195,21 +199,21 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		val statusj = exp.areNodesAlive(selNodes)
 		val status = statusj.status
 		log.debug("Nodes:\n" +
-				status.map(x => {x._1 + " -> " + x._2}).mkString("\n"))
+				status.map(x => {x._1 + " -> " + x._2}).toList.sorted.mkString("\n"))
 		activeNodes = status.filter(_._2 == Alive).map(_._1).toList
 		if(nodes== null){
 			selNodes = activeNodes
-			log.info("No nodes preselected. Using all active nodes: " + selNodes.mkString(", "))
+			log.info("No nodes preselected. Using all active nodes: " + selNodes.sorted.mkString(", "))
 			
 		} else {
 			if (!selNodes.forall(activeNodes.contains(_))) {
-					log.error("Not all motes active. Have: " + activeNodes.mkString(", ") + "; Need: " + selNodes.mkString(", ") +
+					log.error("Not all motes active. Have: " + activeNodes.mkString(", ") + "; Need: " + selNodes.sorted.mkString(", ") +
 					"; Miss: " + selNodes.filter(!activeNodes.contains(_)))
 				return false
 			}
 		}
 		if(selNodes.size == 0) {
-			log.error("State of nodes: \n" + status.map(x => {x._1 + ": " + x._2}).mkString("\n") )
+			log.error("State of nodes: \n" + status.map(x => {x._1 + ": " + x._2}).toList.sorted.mkString("\n") )
 			throw new Exception("No node selected")
 		}
 		
@@ -228,7 +232,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 				return false
 			}
 		}
-
+		resetTime
 		true
 		
 		
@@ -238,7 +242,12 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	def getActiveNodes:List[String] = activeNodes
 	
 	def getActiveNodes(nodeType:String):List[String] = {
-		activeNodes.filterNot(tb.getNode(nodeType).contains(_))
+		val nodes = tb.getNode(nodeType).map(_.id)
+		log.debug("Nodes of " + nodeType + "\n" + nodes.sorted.mkString("\n"))
+		log.debug("Active Nodes \n" + activeNodes.sorted.mkString("\n"))
+		val rv = activeNodes.filter(nodes.contains(_))
+		log.debug("Filtered nodes  " + nodeType + "\n" + rv.sorted.mkString("\n"))
+		rv
 	}
 
 	def flash(firmware: String, nodes: Seq[String] = null, trys: Int = 2): Boolean = {
@@ -252,7 +261,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			fnodes = flashj().filter(_._2 != NodeFlashState.OK).map(_._1).toList
 
 			if (fnodes.size > 0) {
-				log.error("Failed to flash nodes: " + fnodes.mkString(", "))
+				log.error("Failed to flash nodes: " + fnodes.sorted.mkString(", "))
 			}
 		}
 		fnodes.size == 0 
@@ -268,7 +277,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			val flashj = exp.flash(fnodes)
 			fnodes --= flashj().filter(_._2 == NodeFlashState.OK).map(_._1).toList
 			if (fnodes.size > 0) {
-				log.error("Failed to flash nodes: " + fnodes.mkString(", "))
+				log.error("Failed to flash nodes: " + fnodes.toList.sorted.mkString(", "))
 			}
 		}
 		fnodes.size == 0 
@@ -281,7 +290,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		val wnodes= tb.getNode
 		var progmap = collection.mutable.Map[String,(Program, collection.mutable.Buffer[String])]()
 
-		log.debug("Wnodes \n" + wnodes.map(x=> (x.id + " -> " + x.nodeType)).mkString("\n"));
+		log.debug("Wnodes \n" + wnodes.map(x=> (x.id + " -> " + x.nodeType)).sorted.mkString("\n"));
 		
 		for(n <- fnodes) {
 			log.debug("Node:" + n)
@@ -289,7 +298,7 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			val rp = progmap.getOrElseUpdate(nd.nodeType, {
 				val fmrs = this.getClass.getResourceAsStream("/nullfirmware/" + nd.nodeType + ".hex")
 				if(fmrs == null) throw new Exception("No Nullfirmware for NodeType " + nd.nodeType)
-				log.debug("Adding Firmaware for" + nd.nodeType)
+				log.debug("Adding Firmaware for " + nd.nodeType)
 				Program(fmrs, "Nullfirmware " + nd.nodeType ) -> Buffer[String]()				
 			})
 			rp._2 += n
@@ -300,10 +309,11 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			var tfnodes = mt
 			for (t <- 1 to trys) if (tfnodes.size > 0) {
 				log.debug("Flashing  - try " + t)
+				log.debug("Program: "  + prg.name + "\n" + tfnodes.sorted.mkString("\n"))
 				val flashj = exp.flash(prg,tfnodes)
 				tfnodes --= flashj().filter(_._2 == NodeFlashState.OK).map(_._1).toList
 				if (tfnodes.size > 0) {
-					log.error("Failed to flash nodes: " + tfnodes.mkString(", "))
+					log.error("Failed to flash nodes: " + tfnodes.sorted.mkString(", "))
 				}
 			}
 		}
@@ -364,49 +374,51 @@ class ExperimentAbs(conffile: String = "config.xml") {
 	 * @param resetTime
 	 * @return
 	 */
-	def resetNodes(startupTime:Int = 0, randSeed:Integer = null, startupString:String = "Starting", bootTimeout:Int=60, trys:Int = 2): Boolean = {
-		val bootupWaiter = new MessageWaiter(selNodes, startupString)
-		exp.addMessageInput(bootupWaiter)
-		
-		log.debug("Resetting nodes")
-		var resj: List[Job[_]] = null
-		if (startupTime == 0) {
-			resj = List(exp.resetNodes(selNodes))
-
-		} else {
-			val tm = new Date
-			//Make reproduceable
-			val rnd = {if(randSeed == null) new Random() else new Random(randSeed)}
-			val ftrs = Buffer[Future[NodeOkFailJob]]()
-
-			for (mote <- selNodes) {
-				val restm = new Date(tm.getTime + 1000 + (rnd.nextInt % (startupTime * 1000)))
-				val prom = Promise[NodeOkFailJob]()
-				val ftr = new TimerTask {
-					def run = prom.complete(new Success(exp.resetNodes(List(mote))))
+	def resetNodes(startupTime:Int = 0, randSeed:Integer = null, startupString:String = "Starting", bootTimeout:Int=15, trys:Int = 2): Boolean = {
+		var rv = false
+		for(t <- 1 to trys) if(!rv) {
+			val bootupWaiter = new MessageWaiter(selNodes, startupString)
+			exp.addMessageInput(bootupWaiter)
+			
+			log.debug("Resetting nodes - Try " + t)
+			var resj: List[Job[_]] = null
+			if (startupTime == 0) {
+				resj = List(exp.resetNodes(selNodes))
+	
+			} else {
+				val tm = new Date
+				//Make reproduceable
+				val rnd = {if(randSeed == null) new Random() else new Random(randSeed)}
+				val ftrs = Buffer[Future[NodeOkFailJob]]()
+	
+				for (mote <- selNodes) {
+					val restm = new Date(tm.getTime + 1000 + (rnd.nextInt % (startupTime * 1000)))
+					val prom = Promise[NodeOkFailJob]()
+					val ftr = new TimerTask {
+						def run = prom.complete(new Success(exp.resetNodes(List(mote))))
+					}
+					ftrs += prom.future
+					val tmr = new Timer(true)
+					tmr.schedule(ftr, restm)
 				}
-				ftrs += prom.future
-				val tmr = new Timer(true)
-				tmr.schedule(ftr, restm)
+				//Get jobs from futures
+				resj = ftrs.map(Await.result(_, Duration.Inf)).toList
+	
 			}
-			//Get jobs from futures
-			resj = ftrs.map(Await.result(_, Duration.Inf)).toList
-
+			if (!resj.forall(_.success)) {
+				log.error("Failed to reset nodes") 
+			} else {
+				log.debug("Waiting for bootup")
+				if (!bootupWaiter.waitResult(bootTimeout * 1000)) {
+					bootupWaiter.unregister
+					
+					log.error("Failed to Boot: " +  bootupWaiter.successMap.filter(_._2 == false).keys.toList.sorted.mkString(", "))
+				} else {
+					rv = true
+				}
+			}
 		}
-		if (!resj.forall(_.success)) {
-			log.error("Failed to reset nodes")
-			return false
-		}
-		
-
-		log.debug("Waiting for bootup")
-		if (!bootupWaiter.waitResult(bootTimeout * 1000)) {
-			bootupWaiter.unregister
-			log.error("Failed to Boot")
-			cleanup(true)
-		}
-		
-		true
+		rv
 	}
 
 	
@@ -430,6 +442,18 @@ class ExperimentAbs(conffile: String = "config.xml") {
 		logger
 	}
 
+	def addLogCons():MessageLogger = {
+		
+		val logger = new MessageLogger(mi => {
+			log.info(mi.timestamp.getTimeInMillis  + ":" + mi.node + ": " + mi.dataString)
+		}) with MsgLiner
+		
+		exp.addMessageInput(logger)
+		loggers += logger
+		logger
+	}
+	
+	
 	def addMoteLog(basefilename:String):List[MessageLogger] = {
 		addMoteLog(m => basefilename + "_" + m + ".log")
 	}
@@ -513,7 +537,13 @@ class ExperimentAbs(conffile: String = "config.xml") {
 			tb.freeReservation(cr.get)
 		}
 
-		Thread.sleep(1000 * 2)
+		
+		//Wait for them to end
+		for( t <- Thread.getAllStackTraces) {
+			if(!t._1.isDaemon()) {
+				t._1.join(1000)
+			}
+		}
 
 		var mustExit = false
 		val st = Thread.getAllStackTraces
@@ -523,11 +553,15 @@ class ExperimentAbs(conffile: String = "config.xml") {
 				log.debug("Deamon: " + t._1.toString)
 
 			} else {
-				log.debug("Thread: " + t._1.toString + "\n" + t._2.mkString("\n"))
+				if(log.isDebugEnabled) {
+					log.debug("Thread: " + t._1.toString + "\n" + t._2.mkString("\n"))
+				} else if(terminate){
+					log.warn("There is thread still running: " + t._1.toString + "\n" + t._2.mkString("\n"))
+				}
 				mustExit = true
 			}
 		}
-		if (mustExit) sys.exit(2)
+		if (mustExit && terminate) sys.exit(2)
 	}
 	
 	
