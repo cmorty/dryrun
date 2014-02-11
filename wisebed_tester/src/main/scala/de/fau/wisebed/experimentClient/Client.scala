@@ -54,7 +54,7 @@ object Client {
 				.action { (x, c) => c.copy(loglevel = Level.DEBUG) }
 				.text("alias for -d DEBUG")
 			
-			
+			note("")
 			cmd("run") 
 				.action { (_, c) =>  c.copy(cmd = x => new Run(x)) } 
 				.text("Run a script")
@@ -64,29 +64,42 @@ object Client {
 						.text("File to run")
 				)
 				
-				
+			note("")
 			cmd("list")
 				.action { (_, c) =>  c.copy(cmd = x => new List(x)) }
 				.text("List nodes")
 				
+			note("")
 			cmd("state")
 				.action { (_, c) =>  c.copy(cmd = x => new NodeState(x)) }
 				.text("Get Node states")
+				
+			note("")
+			cmd("flash")
+				.action { (_, c) =>  c.copy(cmd = x => new Flash(x)) }
+				.text("Flash nodes")
+				.children(
+						arg[File]("<file>")
+						.action { (x, c) =>  c.copy(file = x) }
+						.text("File to flash")
+				)
+				
+			note("")
+			cmd("flashnull")
+				.action { (_, c) =>  c.copy(cmd = x => new FlashNull(x)) }
+				.text("Flash nodes with null-firmware")
 				
 			checkConfig { c => if(c.cmd == null) failure("Missing command") else success}
 		}
 
 		
 		
-		parser.parse(args, Config())map { cnf =>
+		val cnfo = parser.parse(args, Config())
+		if(cnfo.isDefined) {
+			val cnf = cnfo.get
 			Logger.getRootLogger.setLevel(cnf.loglevel)
 			cnf.cmd(cnf)
-		} getOrElse {		  
 		}
-		
-	
-		
-
 
 	}
 
