@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>de.fau.wisebed</groupId>
 			<artifactId>scala-API</artifactId>
-			<version>1.1.0-SNAPSHOT</version>
+			<version>1.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -35,23 +35,12 @@
 
 
 	<build>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>net.alchim31.maven</groupId>
-					<artifactId>scala-maven-plugin</artifactId>
-					<version>3.1.5</version>
-					<configuration>
-						<recompileMode>incremental</recompileMode>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 		<plugins>
 
 			<plugin>
 				<groupId>net.alchim31.maven</groupId>
 				<artifactId>scala-maven-plugin</artifactId>
+				<version>3.1.6</version>
 				<executions>
 					<execution>
 						<id>compile</id>
@@ -68,6 +57,8 @@
 					</execution>
 				</executions>
 				<configuration>
+					<recompileMode>incremental</recompileMode>
+					<useZincServer>true</useZincServer>
 					<launchers>
 						<launcher>
 							<id>foo</id>
@@ -82,8 +73,6 @@
 						</launcher>
 					</launchers>
 				</configuration>
-
-
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -119,23 +108,23 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 		</plugins>
 
 	</build>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>onejar-maven-plugin.googlecode.com</id>
-			<url>http://onejar-maven-plugin.googlecode.com/svn/mavenrepo</url>
-		</pluginRepository>
-	</pluginRepositories>
+	<repositories>
+		<repository>
+			<id>wisebed-scala-api</id>
+			<url>http://cmorty.github.io/scala-client/repository</url>
+		</repository>
+	</repositories>
 	<reporting>
 		<plugins>
 
 			<plugin>
 				<groupId>org.scala-tools</groupId>
-				<artifactId>maven-scala-plugin</artifactId>
-				<version>3.1.5</version>
+				<artifactId>scala-maven-plugin</artifactId>
+				<version>3.1.6</version>
 			</plugin>
 
 		</plugins>
