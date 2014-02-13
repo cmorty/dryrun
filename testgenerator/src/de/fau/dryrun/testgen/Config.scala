@@ -10,6 +10,7 @@ import scala.actors.Futures._
 import scala.actors.Future
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
+import scala.util.Random
 
 
 
@@ -41,13 +42,11 @@ class Config {
 	
 	
 	
-	
-	
-	
 	def generate {
 		println("running")
-	
+		//This implementation sucks, but I'm to lazy to fix it.
 		val randmap = HashMap[String, Stack[String]]()
+		val randmapNew = HashMap[String, Stack[String]]()
 		var exps = ArrayBuffer[Experiment]()
 		exps += new Experiment
 		
@@ -59,22 +58,14 @@ class Config {
 		
 		Experiment.count = exps.size 
 		
-		val fAll =  new File(outdir + "/all.jobs")
-		val fNew =  new File(outdir + "/new.jobs")
-		val fRand =  new File(outdir + "/rand.jobs")
-		val fLinks =  new File(outdir + "/lnks.sh")
+		val allcmds = collection.mutable.Buffer[String]()
+		val newcmds = collection.mutable.Buffer[String]()
+	    
 		
 		new File(outdir).mkdirs();
-			
-		val wAll  = new BufferedWriter(new FileWriter(fAll))
-		val wNew  = new BufferedWriter(new FileWriter(fNew))
-		val wRand  = new BufferedWriter(new FileWriter(fRand))
+		val fLinks =  new File(outdir + "/lnks.sh")
 		val wLinks  = new BufferedWriter(new FileWriter(fLinks))
 		
-		//io.Source.fromFile("data.txt").mkString
-		
-		
-	    
 		for(ind <- 0 to (exps.length - 1)){
 			val exp =  exps(ind)
 			val sb = new StringBuilder
@@ -106,44 +97,54 @@ class Config {
 			
 			//If no results exist add to new
 			
-			val cmdstr = "\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1\n"
+			val cmdstr = "\"" + of.toString() + "\" 1>\"" + d.toString() + "/" + "exp.log\" 2>&1"
 			
 			
-			wAll.write(cmdstr)
+			allcmds += cmdstr
 			if(! new File(d, resultpath).exists()){
-				wNew.write(cmdstr)
+				newcmds += cmdstr
 			}
 			
-			wLinks.write( "ln -s " + d.toString() + " " + exp.namepath );
+			wLinks.write( "ln -s " + d.toString() + " " + exp.namepath + "\n");
 			
-			//Add Command to randmap
-			val randkey = exp.config.nonRandom
-			randmap.getOrElseUpdate(randkey, Stack[String]()) push cmdstr
-			
-			
-			
-			
+
 		}
+		
+		
+		wLinks.close
+		
+		
+		val fAll =  new File(outdir + "/all.jobs")
+		val fNew =  new File(outdir + "/new.jobs")
+		val fRand =  new File(outdir + "/rand.jobs")
+		val fRandNew =  new File(outdir + "/randnew.jobs")
+		
+		
+		
+			
+		val wAll  = new BufferedWriter(new FileWriter(fAll))
+		val wNew  = new BufferedWriter(new FileWriter(fNew))
+		val wRand  = new BufferedWriter(new FileWriter(fRand))
+		val wRandNew  = new BufferedWriter(new FileWriter(fRandNew))
+		
+		List(fLinks, fNew,fAll,fRand,fRandNew).foreach(_.setExecutable(true))
+		
+		
+		//io.Source.fromFile("data.txt").mkString
+		
+		wAll.write(allcmds.mkString("\n")+ "\n")
+		wNew.write(newcmds.mkString("\n")+ "\n")
+		
+		val r = new Random
+			
+		wRand.write(r.shuffle(allcmds).mkString("\n")+ "\n")
+		wRandNew.write(r.shuffle(newcmds).mkString("\n")+ "\n")
+		
 		wNew.close
 		wAll.close
-		wLinks.close
-		List(fLinks, fNew,fAll,fRand).foreach(_.setExecutable(true))
 
-		
-
-		while(randmap.size > 0){
-			for(rmapel <- randmap){
-				wRand.write(rmapel._2.pop)
-				//If there are no more commands remove element.
-				if(rmapel._2.size == 0){
-					randmap -= rmapel._1
-				}
-			}
-		}
 		wRand.close
-		
-		
-		
+		wRandNew.close
 		
 		
 		
