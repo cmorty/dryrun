@@ -19,7 +19,10 @@ class Cooja(sim:String)(implicit val conf:Config) extends Step {
 	var coojaconf:String = null
 	var log4jconf:String= null
 	var random =  new ArrayBuffer[Long](-1)
-		
+	
+	/**
+	 * Add file to save after run.
+	 */
 	def addfile(f:String){
 		files += f
 	}
@@ -30,24 +33,32 @@ class Cooja(sim:String)(implicit val conf:Config) extends Step {
 	} */
 	
 	
+	/**
+	 * Add random seed
+	 */
 	def addRand(seed:Long*){
 		random -= -1
 		random ++= seed
 	}
 	
+	/**
+	 * Add a range of seeds
+	 */
 	def addRandRange(start:Long, stop:Long, step:Long = 1){
 		val r = Range.Long(start, stop + 1, step)
 		addRand(r.toList:_*)
 	}
 	
+	
+	/**
+	 * Generate random seeds based on seed
+	 */
 	def addRandSet(seed:Int, quantety: Int){
 		val r = new Random(seed)
 		for(foo <- 0 to quantety){
 			addRand(r.nextLong)
 		}
 	}
-	
-	
 
 	
 	def registerExperiment(exps:ArrayBuffer[Experiment]):ArrayBuffer[Experiment] = {
