@@ -95,7 +95,7 @@ class Wisebed1(val defaultFirmware:String = null)(implicit val conf:Config) exte
 			seed <- random){
 
 			val cexp = exp.copy
-			cexp.addConfig("seed",seed.toString, (exp == -1), true)
+			cexp.addConfig("seed",seed.toString, random.length == 1, true)
 			cexp.addName("seed:" + seed.toString)
 			
 			cexp.addcommand(new Command {
@@ -129,7 +129,8 @@ var fmap = Map[String, String]()
 } + """
 flash(fmap)
 addLogLine("wisebed.log")
-resetNodes(""" + startup + ", " + seed +  ", \"" + bootString +"\"" + """)
+val rsn = resetNodes(""" + startup + ", " + seed +  ", \"" + bootString +"\"" + """)
+if(!rsn) cleanup(true)
 resetTime()
 """ + runScript		
 					
