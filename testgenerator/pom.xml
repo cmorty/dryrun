@@ -109,8 +109,8 @@
 						<option>-dontpreverify</option>
 						<option>-dontskipnonpubliclibraryclassmembers</option>
 						<!-- Scala warnings must be ignored -->
-						<option>-dontwarn scala.**</option>
-						<option>-dontwarn ch.epfl.lamp.compiler.**</option>
+						<option>-dontwarn **</option>
+						<option>-dontnote **</option>
 					</options>
 					<libs>
 						<lib>${java.home}/lib/rt.jar</lib>
