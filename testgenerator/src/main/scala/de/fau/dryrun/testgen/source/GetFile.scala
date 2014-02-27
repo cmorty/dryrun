@@ -5,15 +5,12 @@ import de.fau.dryrun.testgen._
 import scala.collection.mutable.ArrayBuffer
 
 
-object GetFile {
-	private var cp = "cp"
-}
 
 
 class GetFile(source:String, dest:String = ".")(implicit conf: Config) extends Step {
 
 	
-	private val cpycmd = new Command {
+	protected val cpycmd = new Command {
 		def getcmd()(implicit exp: Experiment):String = {
 			GetDir.cp + " " + source + " " + exp.chroot + "/" + dest + "\n"
 		}
@@ -30,4 +27,7 @@ class GetFile(source:String, dest:String = ".")(implicit conf: Config) extends S
 		GetDir.cp = cp
 	}  
 
+}
+object GetFile {
+	private var cp = "cp"
 }

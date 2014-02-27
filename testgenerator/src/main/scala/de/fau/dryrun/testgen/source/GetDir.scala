@@ -13,7 +13,7 @@ object GetDir {
 class GetDir(source:String, dest:String = ".")(implicit conf: Config) extends GetFile(source, dest) {
 
 	override 
-	val cpycmd = new Command {
+	protected val cpycmd = new Command {
 		def getcmd()(implicit exp: Experiment):String = {
 			GetDir.cp + " " + source + " " + exp.chroot + "/" + dest + "\n"
 		}
