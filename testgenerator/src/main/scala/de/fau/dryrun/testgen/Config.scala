@@ -1,20 +1,19 @@
 package de.fau.dryrun.testgen
 
-
-import scala.collection.mutable.ArrayBuffer
 import java.io.BufferedWriter
-import java.io.FileWriter
 import java.io.File
-import scala.collection.mutable.StringBuilder
-import scala.actors.Futures._
-import scala.actors.Future
+import java.io.FileWriter
+
+import scala.actors.Futures.future
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
+import scala.collection.mutable.StringBuilder
 import scala.util.Random
 
 
 
-class Config {
+class Config() {
 	
 	
 	var resultpath = "results"
@@ -56,6 +55,8 @@ class Config {
 			println("Number of experiments: " + exps.size )			
 		}
 		
+		exps.foreach(_.finish)
+		
 		Experiment.count = exps.size 
 		
 		val allcmds = collection.mutable.Buffer[String]()
@@ -77,21 +78,24 @@ class Config {
 			//printf("--- " +exp.name+" ---\n%s-------\n" , exp.getcmds)
 			
 			val cmds= exp.getcmds
+			//Get conf afterwards so cmds ca set new confs
 			val cnfs= exp.config.mkString("=", "\n") + "\n" 
 			
 			if(!of.exists || !cf.exists || !io.Source.fromFile(of).mkString.equals(cmds) || !io.Source.fromFile(cf).mkString.equals(cnfs) ){
 				//Write out commands
-				val out = new BufferedWriter( new FileWriter(of))
-				
-				out.write(cmds)
-				future{out.close}
-				
-				
-				of.setExecutable(true)				
-				
-				val cnf = new BufferedWriter(new FileWriter(cf))
-				cnf.write (cnfs)
-				future{cnf.close}
+				future{
+					val out = new BufferedWriter( new FileWriter(of))
+					
+					out.write(cmds)
+					out.close
+					
+					
+					of.setExecutable(true)				
+					
+					val cnf = new BufferedWriter(new FileWriter(cf))
+					cnf.write (cnfs)
+					cnf.close	
+				}
 	
 			}
 			
